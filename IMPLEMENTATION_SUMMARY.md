@@ -43,7 +43,7 @@ Successfully implemented a complete Rust-based CLI tool to enforce Next.js file-
 
 ### Configuration System
 
-- JSON-based configuration (`.next-structure-lintrc.json`)
+- JSON-based configuration (`.naechste.config.json`)
 - Per-rule severity levels (warn|error)
 - Per-rule options
 - Partial config support with sensible defaults

@@ -68,7 +68,7 @@ This project should pass cleanly with **zero errors and zero warnings** when usi
 
 ## Testing Custom Rules
 
-You can modify `.next-structure-lintrc.json` to test different configurations:
+You can modify `.naechste.config.json` to test different configurations:
 
 ### Require Test Files
 ```json

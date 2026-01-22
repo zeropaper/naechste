@@ -21,7 +21,7 @@ struct Cli {
     format: OutputFormat,
 
     /// Path to configuration file
-    #[arg(short, long, default_value = ".next-structure-lintrc.json")]
+    #[arg(short, long, default_value = ".naechste.config.json")]
     config: PathBuf,
 }
 
@@ -37,9 +37,9 @@ fn main() {
     let cli = Cli::parse();
 
     // Determine config path - if not explicitly provided, look in project directory
-    let config_path = if cli.config.to_str() == Some(".next-structure-lintrc.json") {
+    let config_path = if cli.config.to_str() == Some(".naechste.config.json") {
         // Default case: look for config in the project directory
-        cli.path.join(".next-structure-lintrc.json")
+        cli.path.join(".naechste.config.json")
     } else {
         // Explicitly provided config path
         cli.config

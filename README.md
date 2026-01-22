@@ -6,7 +6,7 @@ A fast, Rust-first CLI to enforce Next.js file-structure conventions.
 
 - **Fast & Lightweight**: Single static binary built in Rust
 - **Deterministic**: Emits consistent diagnostics across runs
-- **Configurable**: Per-rule options and severity levels via `.next-structure-lintrc.json`
+- **Configurable**: Per-rule options and severity levels via `.naechste.config.json`
 - **CI/CD Ready**: JSON output format and proper exit codes for automation
 - **GitHub Actions Compatible**: Easy integration with CI workflows
 
@@ -80,7 +80,7 @@ naechste --config my-config.json
 
 ### Configuration
 
-Create a `.next-structure-lintrc.json` file in your project root:
+Create a `.naechste.config.json` file in your project root:
 
 ```json
 {

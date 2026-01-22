@@ -74,7 +74,7 @@ fn test_cli_error_exits_one() {
 
     create_file(
         &project_dir,
-        ".next-structure-lintrc.json",
+        ".naechste.config.json",
         r#"{"rules":{"server_side_exports":{"severity":"error"}}}"#
     );
 
@@ -127,7 +127,7 @@ fn test_cli_human_output() {
 
     create_file(
         &project_dir,
-        ".next-structure-lintrc.json",
+        ".naechste.config.json",
         r#"{"rules":{"filename_style_consistency":{"severity":"warn","options":{"filename_style":"kebab-case"}}}}"#
     );
 
@@ -205,7 +205,7 @@ fn test_cli_multiple_errors() {
 
     create_file(
         &project_dir,
-        ".next-structure-lintrc.json",
+        ".naechste.config.json",
         r#"{"rules":{"server_side_exports":{"severity":"error"}}}"#
     );
 
@@ -238,7 +238,7 @@ fn test_cli_nesting_depth() {
 
     create_file(
         &project_dir,
-        ".next-structure-lintrc.json",
+        ".naechste.config.json",
         r#"{"rules":{"component_nesting_depth":{"severity":"error","options":{"max_nesting_depth":3}}}}"#
     );
 
@@ -260,7 +260,7 @@ fn test_cli_companion_files() {
 
     create_file(
         &project_dir,
-        ".next-structure-lintrc.json",
+        ".naechste.config.json",
         r#"{"rules":{"missing_companion_files":{"severity":"error","options":{"require_test_files":true}}}}"#
     );
 
