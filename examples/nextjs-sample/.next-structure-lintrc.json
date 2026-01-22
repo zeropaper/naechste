@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "server_side_exports": {
+      "severity": "error"
+    },
+    "component_nesting_depth": {
+      "severity": "warn",
+      "options": {
+        "max_nesting_depth": 3
+      }
+    },
+    "filename_style_consistency": {
+      "severity": "warn",
+      "options": {
+        "filename_style": "kebab-case"
+      }
+    },
+    "missing_companion_files": {
+      "severity": "warn",
+      "options": {
+        "require_test_files": false,
+        "require_story_files": false
+      }
+    }
+  }
+}
