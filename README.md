@@ -244,6 +244,23 @@ The following directories are automatically ignored:
 - `out`
 - `.turbo`
 
+## Real-World Example
+
+The `examples/plain-starter` directory contains a complete Next.js project created with:
+```bash
+npx create-next-app --use-npm --tailwind --ts --app --turbopack --no-git --eslint -e with-supabase plain-starter
+```
+
+This real-world project demonstrates that `naechste` works perfectly with standard Next.js conventions and passes cleanly with zero errors when properly configured.
+
+Run the linter on this example:
+```bash
+naechste examples/plain-starter
+# Output: ✓ No issues found!
+```
+
+See `examples/plain-starter/README.naechste.md` for more details.
+
 ## Roadmap
 
 - [ ] LSP (Language Server Protocol) support

@@ -106,7 +106,7 @@ pub fn check_filename_style(
         None => return,
     };
 
-    // Skip special Next.js files
+    // Skip special Next.js files and config files
     let special_files = [
         "page",
         "layout",
@@ -117,6 +117,15 @@ pub fn check_filename_style(
         "route",
         "default",
         "middleware",
+        // Config files
+        "next.config",
+        "tailwind.config",
+        "postcss.config",
+        "eslint.config",
+        "tsconfig",
+        "jsconfig",
+        "vitest.config",
+        "jest.config",
     ];
 
     if special_files.contains(&filename) {
