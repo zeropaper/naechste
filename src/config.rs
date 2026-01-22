@@ -45,6 +45,10 @@ pub struct RuleOptions {
     
     #[serde(default)]
     pub require_story_files: bool,
+
+    /// Custom companion file patterns for additional checks
+    #[serde(default)]
+    pub companion_file_patterns: CompanionFilePatterns,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +65,22 @@ pub enum FilenameStyle {
     CamelCase,
     PascalCase,
     SnakeCase,
+}
+
+/// Custom companion file patterns configuration
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CompanionFilePatterns {
+    /// Integration test patterns like ["*.test.int.ts", "*.test.int.tsx"]
+    #[serde(default)]
+    pub integration_tests: Vec<String>,
+
+    /// Page user scenario patterns like ["page.us.md"]
+    #[serde(default)]
+    pub page_user_scenarios: Vec<String>,
+
+    /// Custom companion file patterns (key = category name, value = list of glob patterns)
+    #[serde(default)]
+    pub custom: std::collections::HashMap<String, Vec<String>>,
 }
 
 fn default_rule_config() -> RuleConfig {
@@ -108,6 +128,7 @@ impl Default for RuleOptions {
             filename_style: default_filename_style(),
             require_test_files: false,
             require_story_files: false,
+            companion_file_patterns: CompanionFilePatterns::default(),
         }
     }
 }

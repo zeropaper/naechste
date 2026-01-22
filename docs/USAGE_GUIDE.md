@@ -456,6 +456,36 @@ components/
 }
 ```
 
+### Additional Companion Patterns Recognized
+
+- **Integration tests**: `*.test.int.ts`, `*.test.int.tsx` (example: `MyComponent.test.int.ts`)
+- **Page user-scenarios**: `page.us.md` — markdown files used as companion documentation for `page.tsx` / `page.jsx` files
+
+### Custom Companion Patterns
+
+You can customize which companion files are recognized (and required) via the `missing_companion_files` rule options using `companion_file_patterns`. Patterns are globs applied relative to the component/page directory.
+
+```json
+{
+  "rules": {
+    "missing_companion_files": {
+      "severity": "warn",
+      "options": {
+        "require_test_files": true,
+        "require_story_files": false,
+        "companion_file_patterns": {
+          "integration_tests": ["*.test.int.ts", "*.test.int.tsx"],
+          "page_user_scenarios": ["page.us.md"]
+        }
+      }
+    }
+  }
+}
+```
+
+This configuration will cause the linter to treat `MyComponent.test.int.ts` as a valid companion test file and will also look for `page.us.md` alongside `page.tsx` / `page.jsx` files when checking for page companions.
+
+
 ### Test File Patterns Recognized
 
 - `.test.tsx`, `.test.ts`, `.test.jsx`, `.test.js`
