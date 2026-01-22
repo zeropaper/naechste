@@ -1,23 +1,25 @@
 # Plain Starter - Real Next.js Project Example
 
-This is a real Next.js project created from the official Vercel `with-supabase` template. It demonstrates that `naechste` works perfectly with standard Next.js project structures.
+This is a real Next.js project created from the official Vercel and Supabase templates. It demonstrates that `naechste` works perfectly with standard Next.js project structures.
 
 ## Project Setup
 
 This project was created using:
 ```bash
 npm i -g pnpm # if you don't have pnpm installed
-pnpm create next-app . --yes --use-pnpm --tailwind --ts --app --turbopack --disable-git --biome
-echo "!README.naechste.md" >> .gitignore
-pnpm dlx shadcn@latest add button
-pnpm dlx shadcn@latest add @supabase/social-auth-nextjs
-pnpm dlx shadcn@latest add @supabase/password-based-auth-nextjs
-pnpm dlx shadcn@latest add @supabase/dropzone-nextjs
-pnpm dlx shadcn@latest add @supabase/realtime-cursor-nextjs
-pnpm dlx shadcn@latest add @supabase/current-user-avatar-nextjs
-pnpm dlx shadcn@latest add @supabase/realtime-avatar-stack-nextjs
-pnpm dlx shadcn@latest add @supabase/realtime-chat-nextjs
-pnpm dlx shadcn@latest add @supabase/infinite-query-hook
+pnpm create next-app@latest my-app --yes --use-pnpm --tailwind --ts --app --turbopack --disable-git --biome
+cd my-app
+pnpm dlx shadcn@latest init -y -t next -b neutral -f -s
+pnpm dlx shadcn@latest add button -y
+# pnpm dlx shadcn@latest add @supabase/social-auth-nextjs -y
+pnpm dlx shadcn@latest add @supabase/password-based-auth-nextjs -y
+pnpm dlx shadcn@latest add @supabase/dropzone-nextjs -y
+pnpm dlx shadcn@latest add @supabase/realtime-cursor-nextjs -y
+pnpm dlx shadcn@latest add @supabase/current-user-avatar-nextjs -y
+pnpm dlx shadcn@latest add @supabase/realtime-avatar-stack-nextjs -y
+pnpm dlx shadcn@latest add @supabase/realtime-chat-nextjs -y
+pnpm dlx shadcn@latest add @supabase/infinite-query-hook -y
+pnpm add -D naechste
 ```
 
 ## Structure
@@ -43,10 +45,10 @@ From the repository root:
 
 ```bash
 # Human-readable output
-naechste examples/plain-starter
+pnpm naechste
 
 # JSON output for CI/CD
-naechste examples/plain-starter --format json
+pnpm naechste --format json
 ```
 
 ## Expected Result
