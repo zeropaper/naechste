@@ -503,7 +503,7 @@ This configuration will cause the linter to treat `MyComponent.test.int.ts` as a
 
 ### Complete Example Configuration
 
-Create `.naechste.config.json` in your project root:
+Create `naechste.json` in your project root:
 
 ```json
 {
@@ -609,7 +609,7 @@ jobs:
 
 ## Troubleshooting
 
-### "Error: File not found: .naechste.config.json"
+### "Error: File not found: naechste.json"
 
 **Solution**: Create the config file in your project root with default settings (or use the example above).
 
@@ -662,7 +662,7 @@ touch components/Button.test.tsx
 
 5. **Use sensible defaults**: The default configuration covers most projects well.
 
-6. **Commit your config**: Include `.naechste.config.json` in version control so all team members use the same rules.
+6. **Commit your config**: Include `naechste.json` in version control so all team members use the same rules.
 
 ---
 

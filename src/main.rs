@@ -21,7 +21,7 @@ struct Cli {
     format: OutputFormat,
 
     /// Path to configuration file
-    #[arg(short, long, default_value = ".naechste.config.json")]
+    #[arg(short, long, default_value = "naechste.json")]
     config: PathBuf,
 }
 
@@ -37,9 +37,9 @@ fn main() {
     let cli = Cli::parse();
 
     // Determine config path - if not explicitly provided, look in project directory
-    let config_path = if cli.config.to_str() == Some(".naechste.config.json") {
+    let config_path = if cli.config.to_str() == Some("naechste.json") {
         // Default case: look for config in the project directory
-        cli.path.join(".naechste.config.json")
+        cli.path.join("naechste.json")
     } else {
         // Explicitly provided config path
         cli.config
