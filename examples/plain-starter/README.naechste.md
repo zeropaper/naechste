@@ -6,7 +6,18 @@ This is a real Next.js project created from the official Vercel `with-supabase` 
 
 This project was created using:
 ```bash
-npx create-next-app --use-npm --tailwind --ts --app --turbopack --no-git --eslint -e with-supabase plain-starter
+npm i -g pnpm # if you don't have pnpm installed
+pnpm create next-app . --yes --use-pnpm --tailwind --ts --app --turbopack --disable-git --biome
+echo "!README.naechste.md" >> .gitignore
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add @supabase/social-auth-nextjs
+pnpm dlx shadcn@latest add @supabase/password-based-auth-nextjs
+pnpm dlx shadcn@latest add @supabase/dropzone-nextjs
+pnpm dlx shadcn@latest add @supabase/realtime-cursor-nextjs
+pnpm dlx shadcn@latest add @supabase/current-user-avatar-nextjs
+pnpm dlx shadcn@latest add @supabase/realtime-avatar-stack-nextjs
+pnpm dlx shadcn@latest add @supabase/realtime-chat-nextjs
+pnpm dlx shadcn@latest add @supabase/infinite-query-hook
 ```
 
 ## Structure
