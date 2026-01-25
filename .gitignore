@@ -2,3 +2,12 @@
 examples/*
 !examples/plain-starter/README.naechste.md
 .vscode
+
+# NPM
+node_modules/
+.npmrc
+*.tgz
+
+# Binary output
+bin/naechste
+bin/naechste.exe

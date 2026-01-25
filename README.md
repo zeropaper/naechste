@@ -50,6 +50,52 @@ Ensures components have associated test and/or story files.
 
 ## Installation
 
+### Via NPM (Recommended)
+
+**Prerequisites**: This package is published to GitHub Packages and requires authentication.
+
+1. **Create or update `.npmrc`** in your project root or home directory:
+
+```bash
+# .npmrc
+@zeropaper:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+2. **Set your GitHub token** as an environment variable:
+
+```bash
+# Create a GitHub Personal Access Token with 'read:packages' scope at:
+# https://github.com/settings/tokens
+
+export GITHUB_TOKEN=your_github_token_here
+```
+
+3. **Install the package**:
+
+```bash
+# Using pnpm
+pnpm add -D @zeropaper/naechste
+
+# Using npm
+npm install --save-dev @zeropaper/naechste
+
+# Using yarn
+yarn add -D @zeropaper/naechste
+```
+
+4. **Run the CLI**:
+
+```bash
+# Via package manager
+pnpm naechste
+npx naechste
+yarn naechste
+
+# Or directly
+./node_modules/.bin/naechste
+```
+
 ### From Source
 
 ```bash
@@ -150,6 +196,39 @@ warn: Filename 'MyComponent' does not match expected style: KebabCase [filename-
 
 ### GitHub Actions
 
+#### Using NPM Package
+
+```yaml
+name: Lint Next.js Structure
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@zeropaper'
+      
+      - name: Create .npmrc
+        run: |
+          echo "@zeropaper:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Run naechste
+        run: pnpm naechste --format json
+```
+
+#### Using Rust (Build from Source)
+
 ```yaml
 name: Lint Next.js Structure
 on: [push, pull_request]
@@ -165,6 +244,14 @@ jobs:
         with:
           toolchain: stable
       
+      - name: Install naechste
+        run: cargo install --path .
+      
+      - name: Run linter
+        run: naechste --format json
+```
+
+### Exit Codes
       - name: Install naechste
         run: cargo install --path .
       
@@ -260,6 +347,34 @@ naechste examples/plain-starter
 ```
 
 See `examples/plain-starter/README.naechste.md` for more details.
+
+## Publishing Releases
+
+This project uses automated releases via GitHub Actions. To publish a new version:
+
+1. **Update version in `package.json`**:
+```bash
+npm version patch  # or minor, or major
+```
+
+2. **Create and push a git tag**:
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+3. **GitHub Actions will automatically**:
+   - Build binaries for all platforms (Linux, macOS, Windows on x64 and ARM64)
+   - Create a GitHub release with binary artifacts
+   - Publish the NPM package to GitHub Packages (`@zeropaper/naechste`)
+   - Update `Cargo.toml` with the new version
+
+### Supported Platforms
+
+The automated build creates binaries for:
+- **Linux**: x86_64, aarch64
+- **macOS**: x86_64 (Intel), aarch64 (Apple Silicon)
+- **Windows**: x86_64
 
 ## Roadmap
 

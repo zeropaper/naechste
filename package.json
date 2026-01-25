@@ -1,0 +1,47 @@
+{
+  "name": "@zeropaper/naechste",
+  "version": "0.1.0",
+  "description": "A fast, Rust-first CLI to enforce Next.js file-structure conventions",
+  "author": "naechste contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeropaper/naechste.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "bin": {
+    "naechste": "./bin/naechste"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "nextjs",
+    "linter",
+    "cli",
+    "rust",
+    "file-structure",
+    "conventions"
+  ],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}

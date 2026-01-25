@@ -8,6 +8,8 @@ Thank you for your interest in contributing to naechste! This document provides 
 
 - Rust 1.70 or later
 - Cargo (comes with Rust)
+- Node.js 16+ (for NPM package testing)
+- pnpm, npm, or yarn (optional, for NPM package testing)
 
 ### Getting Started
 
@@ -71,6 +73,38 @@ cargo test --test integration_tests
 Run both unit and integration tests (60 total):
 ```bash
 cargo test
+```
+
+### Testing the NPM Package Locally
+
+1. Build the Rust binary:
+```bash
+cargo build --release
+```
+
+2. Create archives for your platform:
+```bash
+# Linux/macOS
+tar czf naechste-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz -C target/release naechste
+
+# Windows (PowerShell)
+Compress-Archive -Path target/release/naechste.exe -DestinationPath naechste-windows-x86_64.zip
+```
+
+3. Test NPM package installation:
+```bash
+# Create a test directory
+mkdir /tmp/test-naechste
+cd /tmp/test-naechste
+npm init -y
+
+# Copy the archive to simulate a GitHub release
+# Then install the package
+npm pack /path/to/naechste
+npm install ./zeropaper-naechste-0.1.0.tgz
+
+# Test the CLI
+npx naechste --version
 ```
 
 ### Test Coverage by Module
@@ -195,6 +229,15 @@ cargo build --release
 - Update documentation if needed
 - Ensure all tests pass
 - Keep PRs focused on a single feature or fix
+
+## Release Process
+
+See [RELEASE.md](RELEASE.md) for detailed information about creating releases.
+
+Quick summary:
+1. Update version in `package.json`
+2. Create and push a git tag (e.g., `v0.1.1`)
+3. GitHub Actions automatically builds and publishes
 
 ## Questions?
 

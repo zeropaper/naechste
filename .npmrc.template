@@ -1,0 +1,23 @@
+# NPM Configuration for GitHub Packages
+# Copy this file to .npmrc in your project root or home directory (~/.npmrc)
+# Replace YOUR_GITHUB_TOKEN with your actual token
+
+@zeropaper:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
+
+# To create a token:
+# 1. Go to https://github.com/settings/tokens
+# 2. Click "Generate new token (classic)"
+# 3. Give it a descriptive name (e.g., "naechste-npm-package")
+# 4. Select the "read:packages" scope
+# 5. Click "Generate token"
+# 6. Copy the token and replace YOUR_GITHUB_TOKEN above
+#
+# Alternative: Use environment variable
+# //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+# Example using the GitHub CLI to set the env var:
+# 1. Login or refresh a token with package read scope:
+#    gh auth login         # (or)
+#    gh auth refresh -h github.com -s read:packages
+# 2. Export the token for npm:
+#    export GITHUB_TOKEN="$(gh auth token)"
