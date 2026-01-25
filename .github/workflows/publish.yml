@@ -33,26 +33,26 @@ jobs:
             target: x86_64-unknown-linux-gnu
             platform: linux-x86_64
             archive: tar.gz
-          # Linux ARM64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            platform: linux-aarch64
-            archive: tar.gz
-          # macOS x86_64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            platform: darwin-x86_64
-            archive: tar.gz
-          # macOS ARM64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            platform: darwin-aarch64
-            archive: tar.gz
-          # Windows x86_64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            platform: windows-x86_64
-            archive: zip
+          # # Linux ARM64
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-gnu
+          #   platform: linux-aarch64
+          #   archive: tar.gz
+          # # macOS x86_64
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   platform: darwin-x86_64
+          #   archive: tar.gz
+          # # macOS ARM64
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+          #   platform: darwin-aarch64
+          #   archive: tar.gz
+          # # Windows x86_64
+          # - os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   platform: windows-x86_64
+          #   archive: zip
 
     steps:
       - name: Checkout code
