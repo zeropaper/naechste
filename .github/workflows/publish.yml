@@ -3,38 +3,28 @@ name: Release and Publish
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  create-release:
-    name: Create Release
+  get-version:
+    name: Get Version
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Get version from tag
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
   build-binaries:
     name: Build ${{ matrix.target }}
-    needs: create-release
+    needs: get-version
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -66,14 +56,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
 
       - name: Install cross-compilation tools (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -82,10 +70,7 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build binary
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
@@ -104,36 +89,33 @@ jobs:
           mv naechste-${{ matrix.platform }}.zip ../../..
 
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./naechste-${{ matrix.platform }}.${{ matrix.archive }}
-          asset_name: naechste-${{ matrix.platform }}.${{ matrix.archive }}
-          asset_content_type: application/octet-stream
+          files: ./naechste-${{ matrix.platform }}.${{ matrix.archive }}
+          draft: false
+          prerelease: false
 
   publish-npm:
     name: Publish to GitHub Packages
-    needs: [create-release, build-binaries]
+    needs: [get-version, build-binaries]
     runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          node-version: '18'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@zeropaper'
+          node-version: "18"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@zeropaper"
 
       - name: Update package.json version
         run: |
-          VERSION="${{ needs.create-release.outputs.version }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
           npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Publish to GitHub Packages
@@ -143,18 +125,20 @@ jobs:
 
   update-cargo-version:
     name: Update Cargo.toml version
-    needs: create-release
+    needs: get-version
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: success()
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Cargo.toml
         run: |
-          VERSION="${{ needs.create-release.outputs.version }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
 
       - name: Commit and push if changed
@@ -162,4 +146,4 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Cargo.toml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: bump version to ${{ needs.create-release.outputs.version }}" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: bump version to ${{ needs.get-version.outputs.version }}" && git push)
