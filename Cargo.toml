@@ -1,6 +1,6 @@
 [package]
 name = "naechste"
-version = "0.1.2-beta.1"
+version = "0.1.2-beta.2"
 edition = "2021"
 authors = ["naechste contributors"]
 description = "A fast, Rust-first CLI to enforce Next.js file-structure conventions"
