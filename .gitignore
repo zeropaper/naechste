@@ -1,3 +1,4 @@
 /target
 examples/*
 !examples/plain-starter/README.naechste.md
+.vscode
