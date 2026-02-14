@@ -6,6 +6,7 @@ use walkdir::WalkDir;
 
 pub fn lint(path: &Path, config: &Config) -> DiagnosticCollection {
     let mut diagnostics = DiagnosticCollection::new();
+    let mut all_files = Vec::new();
 
     // Walk through the project directory
     for entry in WalkDir::new(path)
@@ -25,13 +26,19 @@ pub fn lint(path: &Path, config: &Config) -> DiagnosticCollection {
                 continue;
             }
 
-            // Run rules
+            // Collect all files for batch processing
+            all_files.push(file_path.to_path_buf());
+
+            // Run per-file rules
             rules::check_server_side_exports(file_path, config, &mut diagnostics);
             rules::check_component_nesting_depth(file_path, config, &mut diagnostics);
             rules::check_filename_style(file_path, config, &mut diagnostics);
             rules::check_missing_companion_files(file_path, config, &mut diagnostics);
         }
     }
+
+    // Run batch rules that need all files
+    rules::check_file_organization(path, &all_files, config, &mut diagnostics);
 
     diagnostics
 }
