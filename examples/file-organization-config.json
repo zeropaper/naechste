@@ -1,0 +1,53 @@
+{
+  "rules": {
+    "file_organization": {
+      "severity": "warn",
+      "options": {
+        "file_organization_checks": [
+          {
+            "id": "page-needs-user-story",
+            "description": "Every page.tsx must have a User-Story.us.md next to it",
+            "match": {
+              "glob": "**/page.tsx"
+            },
+            "require": [
+              {
+                "kind": "sibling_exact",
+                "name": "User-Story.us.md"
+              }
+            ]
+          },
+          {
+            "id": "component-needs-stories",
+            "description": "Components need Storybook story files",
+            "match": {
+              "glob": "**/*.tsx",
+              "exclude_glob": ["**/page.tsx", "**/layout.tsx"]
+            },
+            "require": [
+              {
+                "kind": "sibling_glob",
+                "glob": "*.stories.tsx"
+              }
+            ]
+          },
+          {
+            "id": "shared-ui-must-live-in-ui",
+            "description": "UI components imported from app must live under components/ui",
+            "match": {
+              "glob": "**/*.tsx"
+            },
+            "when_imported_by": {
+              "importer_glob": "app/**",
+              "import_path_matches": ["^@/components/ui/"]
+            },
+            "enforce_location": {
+              "must_be_under": ["components/ui", "app/components/ui"],
+              "message": "UI components imported from app/** must live under components/ui"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
