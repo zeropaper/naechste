@@ -331,6 +331,7 @@ pub fn check_file_organization(
     use crate::config::{RequireKind};
     use crate::utils;
     use regex::Regex;
+    use std::collections::HashMap;
     
     let checks = &config.rules.file_organization.options.file_organization_checks;
     
@@ -340,6 +341,20 @@ pub fn check_file_organization(
     
     // Build import index for when_imported_by checks
     let import_index = utils::build_import_index(all_files, project_root);
+    
+    // Pre-compile regex patterns for all checks
+    let mut compiled_patterns: HashMap<String, Vec<Regex>> = HashMap::new();
+    for check in checks {
+        if let Some(when_imported) = &check.when_imported_by {
+            let mut patterns = Vec::new();
+            for pattern_str in &when_imported.import_path_matches {
+                if let Ok(pattern) = Regex::new(pattern_str) {
+                    patterns.push(pattern);
+                }
+            }
+            compiled_patterns.insert(check.id.clone(), patterns);
+        }
+    }
     
     // Process each check
     for check in checks {
@@ -411,19 +426,19 @@ pub fn check_file_organization(
                         // Get import specifiers from this importer
                         let import_specs = utils::extract_imports(importer);
                         
-                        // Check if any import specifier matches the patterns
+                        // Check if any import specifier matches the patterns (using pre-compiled regexes)
                         let mut matches_import_pattern = false;
-                        for spec in &import_specs {
-                            for pattern_str in &when_imported.import_path_matches {
-                                if let Ok(pattern) = Regex::new(pattern_str) {
+                        if let Some(patterns) = compiled_patterns.get(&check.id) {
+                            for spec in &import_specs {
+                                for pattern in patterns {
                                     if pattern.is_match(spec) {
                                         matches_import_pattern = true;
                                         break;
                                     }
                                 }
-                            }
-                            if matches_import_pattern {
-                                break;
+                                if matches_import_pattern {
+                                    break;
+                                }
                             }
                         }
                         

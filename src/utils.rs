@@ -60,25 +60,19 @@ pub fn extract_imports(file_path: &Path) -> Vec<String> {
     // Match: import ... from '...' or import ... from "..."
     let import_re = Regex::new(r#"import\s+.*?\s+from\s+['"]([^'"]+)['"]"#).unwrap();
     for cap in import_re.captures_iter(&content) {
-        if let Some(import_path) = cap.get(1) {
-            imports.push(import_path.as_str().to_string());
-        }
+        imports.push(cap[1].to_string());
     }
     
     // Match: require('...') or require("...")
     let require_re = Regex::new(r#"require\s*\(\s*['"]([^'"]+)['"]\s*\)"#).unwrap();
     for cap in require_re.captures_iter(&content) {
-        if let Some(import_path) = cap.get(1) {
-            imports.push(import_path.as_str().to_string());
-        }
+        imports.push(cap[1].to_string());
     }
     
     // Match: export ... from '...' or export ... from "..."
     let export_re = Regex::new(r#"export\s+.*?\s+from\s+['"]([^'"]+)['"]"#).unwrap();
     for cap in export_re.captures_iter(&content) {
-        if let Some(import_path) = cap.get(1) {
-            imports.push(import_path.as_str().to_string());
-        }
+        imports.push(cap[1].to_string());
     }
     
     imports

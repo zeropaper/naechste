@@ -48,6 +48,104 @@ Ensures components have associated test and/or story files.
 - `require_test_files`: Require `.test.tsx`, `.spec.tsx`, or `__tests__/` files
 - `require_story_files`: Require `.stories.tsx` or `.story.tsx` files
 
+### 5. File Organization (`file-organization`)
+Enforces custom file organization rules based on glob patterns and import relationships.
+
+**Features:**
+- **Sibling file requirements**: Ensure specific files exist next to matched files
+- **Import-based location enforcement**: Validate file locations based on import patterns
+- **Glob pattern matching**: Flexible file matching with exclude patterns
+
+**Configuration structure:**
+```json
+{
+  "rules": {
+    "file_organization": {
+      "severity": "warn",
+      "options": {
+        "file_organization_checks": [
+          {
+            "id": "unique-check-id",
+            "description": "Optional description",
+            "match": {
+              "glob": "**/*.tsx",
+              "exclude_glob": ["**/page.tsx"]
+            },
+            "require": [
+              {
+                "kind": "sibling_exact",
+                "name": "exact-filename.md"
+              },
+              {
+                "kind": "sibling_glob",
+                "glob": "*.stories.tsx"
+              }
+            ],
+            "when_imported_by": {
+              "importer_glob": "app/**",
+              "import_path_matches": ["^@/components/ui/"]
+            },
+            "enforce_location": {
+              "must_be_under": ["components/ui"],
+              "message": "Custom error message"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Examples:**
+
+1. **Require User Story files for pages:**
+```json
+{
+  "id": "page-needs-user-story",
+  "match": { "glob": "**/page.tsx" },
+  "require": [
+    { "kind": "sibling_exact", "name": "User-Story.us.md" }
+  ]
+}
+```
+
+2. **Require Storybook stories for components:**
+```json
+{
+  "id": "component-needs-stories",
+  "match": {
+    "glob": "**/*.tsx",
+    "exclude_glob": ["**/page.tsx", "**/layout.tsx"]
+  },
+  "require": [
+    { "kind": "sibling_glob", "glob": "*.stories.tsx" }
+  ]
+}
+```
+
+3. **Enforce component location based on imports:**
+```json
+{
+  "id": "ui-components-location",
+  "match": { "glob": "**/*.tsx" },
+  "when_imported_by": {
+    "importer_glob": "app/**",
+    "import_path_matches": ["^@/components/ui/"]
+  },
+  "enforce_location": {
+    "must_be_under": ["components/ui"],
+    "message": "UI components must live under components/ui"
+  }
+}
+```
+
+**Import path resolution:**
+- Relative imports: `./Button`, `../components/Header`
+- Alias imports: `@/components/Button` (resolves to `<root>/components/Button`)
+- Handles TypeScript/JavaScript extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`
+- Supports index files: `./components` → `./components/index.tsx`
+
 ## Installation
 
 ### Via NPM (Recommended)
