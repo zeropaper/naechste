@@ -21,6 +21,9 @@ pub struct Rules {
 
     #[serde(default = "default_rule_config")]
     pub missing_companion_files: RuleConfig,
+    
+    #[serde(default = "default_rule_config")]
+    pub file_organization: RuleConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +52,10 @@ pub struct RuleOptions {
     /// Custom companion file patterns for additional checks
     #[serde(default)]
     pub companion_file_patterns: CompanionFilePatterns,
+    
+    /// File organization checks
+    #[serde(default)]
+    pub file_organization_checks: Vec<OrganizationCheck>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,6 +88,77 @@ pub struct CompanionFilePatterns {
     /// Custom companion file patterns (key = category name, value = list of glob patterns)
     #[serde(default)]
     pub custom: std::collections::HashMap<String, Vec<String>>,
+}
+
+/// File organization check configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrganizationCheck {
+    /// Unique identifier for this check
+    pub id: String,
+    
+    /// Optional description of what this check does
+    #[serde(default)]
+    pub description: Option<String>,
+    
+    /// Pattern to match files this check applies to
+    pub r#match: MatchPattern,
+    
+    /// Requirements for companion files
+    #[serde(default)]
+    pub require: Vec<RequireKind>,
+    
+    /// When imported by condition
+    #[serde(default)]
+    pub when_imported_by: Option<WhenImportedBy>,
+    
+    /// Location enforcement
+    #[serde(default)]
+    pub enforce_location: Option<EnforceLocation>,
+}
+
+/// Pattern for matching files
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatchPattern {
+    /// Glob pattern to match files
+    pub glob: String,
+    
+    /// Optional glob patterns to exclude
+    #[serde(default)]
+    pub exclude_glob: Vec<String>,
+}
+
+/// Kind of companion file requirement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum RequireKind {
+    /// Exact sibling file name
+    #[serde(rename = "sibling_exact")]
+    SiblingExact { name: String },
+    
+    /// Sibling file matching glob
+    #[serde(rename = "sibling_glob")]
+    SiblingGlob { glob: String },
+}
+
+/// Condition for when a file is imported by another
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WhenImportedBy {
+    /// Glob pattern for importer files
+    pub importer_glob: String,
+    
+    /// Regex patterns to match import specifiers
+    pub import_path_matches: Vec<String>,
+}
+
+/// Location enforcement rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnforceLocation {
+    /// List of allowed directory prefixes
+    pub must_be_under: Vec<String>,
+    
+    /// Optional custom message
+    #[serde(default)]
+    pub message: Option<String>,
 }
 
 fn default_rule_config() -> RuleConfig {
@@ -117,6 +195,7 @@ impl Default for Rules {
             component_nesting_depth: default_rule_config(),
             filename_style_consistency: default_rule_config(),
             missing_companion_files: default_rule_config(),
+            file_organization: default_rule_config(),
         }
     }
 }
@@ -129,6 +208,7 @@ impl Default for RuleOptions {
             require_test_files: false,
             require_story_files: false,
             companion_file_patterns: CompanionFilePatterns::default(),
+            file_organization_checks: Vec::new(),
         }
     }
 }
@@ -411,4 +491,122 @@ rules:
         let result = Config::load(&config_path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_file_organization_config_parsing() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("test-file-org-config.json");
+        
+        let config_json = r#"{
+            "rules": {
+                "file_organization": {
+                    "severity": "error",
+                    "options": {
+                        "file_organization_checks": [
+                            {
+                                "id": "page-needs-user-story",
+                                "description": "Every page.tsx must have a User-Story.us.md",
+                                "match": {
+                                    "glob": "**/page.tsx"
+                                },
+                                "require": [
+                                    {
+                                        "kind": "sibling_exact",
+                                        "name": "User-Story.us.md"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "component-needs-stories",
+                                "match": {
+                                    "glob": "**/*.tsx",
+                                    "exclude_glob": ["**/page.tsx", "**/layout.tsx"]
+                                },
+                                "require": [
+                                    {
+                                        "kind": "sibling_glob",
+                                        "glob": "*.stories.tsx"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }"#;
+        
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(config_json.as_bytes()).unwrap();
+        
+        let config = Config::load(&config_path).unwrap();
+        
+        assert!(matches!(config.rules.file_organization.severity, Severity::Error));
+        assert_eq!(config.rules.file_organization.options.file_organization_checks.len(), 2);
+        
+        let check1 = &config.rules.file_organization.options.file_organization_checks[0];
+        assert_eq!(check1.id, "page-needs-user-story");
+        assert_eq!(check1.r#match.glob, "**/page.tsx");
+        assert_eq!(check1.require.len(), 1);
+        
+        let check2 = &config.rules.file_organization.options.file_organization_checks[1];
+        assert_eq!(check2.id, "component-needs-stories");
+        assert_eq!(check2.r#match.exclude_glob.len(), 2);
+        
+        std::fs::remove_file(config_path).ok();
+    }
+
+    #[test]
+    fn test_file_organization_with_location_enforcement() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("test-file-org-loc-config.json");
+        
+        let config_json = r#"{
+            "rules": {
+                "file_organization": {
+                    "severity": "warn",
+                    "options": {
+                        "file_organization_checks": [
+                            {
+                                "id": "ui-must-live-in-components",
+                                "match": {
+                                    "glob": "**/*.tsx"
+                                },
+                                "when_imported_by": {
+                                    "importer_glob": "app/**",
+                                    "import_path_matches": ["^@/components/ui/"]
+                                },
+                                "enforce_location": {
+                                    "must_be_under": ["components/ui", "app/components/ui"],
+                                    "message": "UI components must live under components/ui"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }"#;
+        
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(config_json.as_bytes()).unwrap();
+        
+        let config = Config::load(&config_path).unwrap();
+        
+        assert!(matches!(config.rules.file_organization.severity, Severity::Warn));
+        assert_eq!(config.rules.file_organization.options.file_organization_checks.len(), 1);
+        
+        let check = &config.rules.file_organization.options.file_organization_checks[0];
+        assert!(check.when_imported_by.is_some());
+        assert!(check.enforce_location.is_some());
+        
+        let when_imported = check.when_imported_by.as_ref().unwrap();
+        assert_eq!(when_imported.importer_glob, "app/**");
+        assert_eq!(when_imported.import_path_matches.len(), 1);
+        
+        let enforce_loc = check.enforce_location.as_ref().unwrap();
+        assert_eq!(enforce_loc.must_be_under.len(), 2);
+        assert_eq!(enforce_loc.message.as_ref().unwrap(), "UI components must live under components/ui");
+        
+        std::fs::remove_file(config_path).ok();
+    }
 }
+

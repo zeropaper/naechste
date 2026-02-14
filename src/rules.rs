@@ -321,6 +321,140 @@ fn resolve_companion_pattern(pattern: &str, file_stem: &str, ext: &str) -> Strin
         .replace("{ext}", ext)
 }
 
+/// Check file organization rules
+pub fn check_file_organization(
+    project_root: &Path,
+    all_files: &[std::path::PathBuf],
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    use crate::config::{RequireKind};
+    use crate::utils;
+    use regex::Regex;
+    
+    let checks = &config.rules.file_organization.options.file_organization_checks;
+    
+    if checks.is_empty() {
+        return;
+    }
+    
+    // Build import index for when_imported_by checks
+    let import_index = utils::build_import_index(all_files, project_root);
+    
+    // Process each check
+    for check in checks {
+        // Find files matching the pattern
+        for file in all_files {
+            // Check if file matches the glob pattern
+            if !utils::matches_glob(file, &check.r#match.glob, project_root) {
+                continue;
+            }
+            
+            // Check if file is excluded
+            if utils::is_excluded(file, &check.r#match.exclude_glob, project_root) {
+                continue;
+            }
+            
+            // Check require conditions (sibling files)
+            for require in &check.require {
+                match require {
+                    RequireKind::SiblingExact { name } => {
+                        if let Some(parent) = file.parent() {
+                            let sibling_path = parent.join(name);
+                            if !sibling_path.exists() {
+                                diagnostics.add(Diagnostic {
+                                    severity: config.rules.file_organization.severity,
+                                    rule: format!("file-organization:{}", check.id),
+                                    message: format!(
+                                        "Missing required companion file '{}' next to '{}'",
+                                        name,
+                                        file.display()
+                                    ),
+                                    file: file.clone(),
+                                    line: None,
+                                });
+                            }
+                        }
+                    }
+                    RequireKind::SiblingGlob { glob } => {
+                        if let Some(parent) = file.parent() {
+                            let siblings = utils::find_sibling_by_glob(parent, glob);
+                            if siblings.is_empty() {
+                                diagnostics.add(Diagnostic {
+                                    severity: config.rules.file_organization.severity,
+                                    rule: format!("file-organization:{}", check.id),
+                                    message: format!(
+                                        "Missing required companion file matching '{}' next to '{}'",
+                                        glob,
+                                        file.display()
+                                    ),
+                                    file: file.clone(),
+                                    line: None,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check when_imported_by and enforce_location
+            if let (Some(when_imported), Some(enforce_loc)) = (&check.when_imported_by, &check.enforce_location) {
+                // Get files that import this file
+                let normalized_file = file.canonicalize().unwrap_or_else(|_| file.clone());
+                if let Some(importers) = import_index.get(&normalized_file) {
+                    // Check if any importer matches the importer_glob
+                    for importer in importers {
+                        if !utils::matches_glob(importer, &when_imported.importer_glob, project_root) {
+                            continue;
+                        }
+                        
+                        // Get import specifiers from this importer
+                        let import_specs = utils::extract_imports(importer);
+                        
+                        // Check if any import specifier matches the patterns
+                        let mut matches_import_pattern = false;
+                        for spec in &import_specs {
+                            for pattern_str in &when_imported.import_path_matches {
+                                if let Ok(pattern) = Regex::new(pattern_str) {
+                                    if pattern.is_match(spec) {
+                                        matches_import_pattern = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if matches_import_pattern {
+                                break;
+                            }
+                        }
+                        
+                        if matches_import_pattern {
+                            // Check if file is under required location
+                            if !utils::is_under_any_prefix(file, &enforce_loc.must_be_under, project_root) {
+                                let msg = enforce_loc.message.clone().unwrap_or_else(|| {
+                                    format!(
+                                        "File is imported by '{}' but is not located under any of: {}",
+                                        importer.display(),
+                                        enforce_loc.must_be_under.join(", ")
+                                    )
+                                });
+                                
+                                diagnostics.add(Diagnostic {
+                                    severity: config.rules.file_organization.severity,
+                                    rule: format!("file-organization:{}", check.id),
+                                    message: msg,
+                                    file: file.clone(),
+                                    line: None,
+                                });
+                                break; // Only report once per file
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -967,4 +1101,252 @@ export function getStaticPaths() {}
         assert_eq!(resolve_companion_pattern("*.stories.{ext}", "Modal", "tsx"), "Modal.stories.tsx");
         assert_eq!(resolve_companion_pattern("page.us.md", "page", "tsx"), "page.us.md");
     }
+
+    // Tests for file_organization rule
+    #[test]
+    fn test_file_organization_sibling_exact_missing() {
+        use crate::config::{OrganizationCheck, MatchPattern, RequireKind};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-sibling-exact");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        let page_file = temp_dir.join("page.tsx");
+        create_temp_file(&page_file, "export default function Page() {}");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.severity = crate::config::Severity::Error;
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "page-needs-user-story".to_string(),
+                description: Some("Every page.tsx must have a User-Story.us.md".to_string()),
+                r#match: MatchPattern {
+                    glob: "**/page.tsx".to_string(),
+                    exclude_glob: vec![],
+                },
+                require: vec![
+                    RequireKind::SiblingExact { name: "User-Story.us.md".to_string() }
+                ],
+                when_imported_by: None,
+                enforce_location: None,
+            }
+        ];
+        
+        let all_files = vec![page_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        assert_eq!(diagnostics.diagnostics.len(), 1);
+        assert!(diagnostics.diagnostics[0].message.contains("User-Story.us.md"));
+        assert!(diagnostics.diagnostics[0].rule.contains("page-needs-user-story"));
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_file_organization_sibling_exact_exists() {
+        use crate::config::{OrganizationCheck, MatchPattern, RequireKind};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-sibling-exists");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        let page_file = temp_dir.join("page.tsx");
+        create_temp_file(&page_file, "export default function Page() {}");
+        
+        let us_file = temp_dir.join("User-Story.us.md");
+        create_temp_file(&us_file, "# User Story");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "page-needs-user-story".to_string(),
+                description: None,
+                r#match: MatchPattern {
+                    glob: "**/page.tsx".to_string(),
+                    exclude_glob: vec![],
+                },
+                require: vec![
+                    RequireKind::SiblingExact { name: "User-Story.us.md".to_string() }
+                ],
+                when_imported_by: None,
+                enforce_location: None,
+            }
+        ];
+        
+        let all_files = vec![page_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        assert_eq!(diagnostics.diagnostics.len(), 0);
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_file_organization_sibling_glob_missing() {
+        use crate::config::{OrganizationCheck, MatchPattern, RequireKind};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-glob-missing");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        let button_file = temp_dir.join("Button.tsx");
+        create_temp_file(&button_file, "export const Button = () => {}");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "component-needs-stories".to_string(),
+                description: None,
+                r#match: MatchPattern {
+                    glob: "**/*.tsx".to_string(),
+                    exclude_glob: vec!["**/page.tsx".to_string()],
+                },
+                require: vec![
+                    RequireKind::SiblingGlob { glob: "*.stories.tsx".to_string() }
+                ],
+                when_imported_by: None,
+                enforce_location: None,
+            }
+        ];
+        
+        let all_files = vec![button_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        assert_eq!(diagnostics.diagnostics.len(), 1);
+        assert!(diagnostics.diagnostics[0].message.contains("*.stories.tsx"));
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_file_organization_sibling_glob_exists() {
+        use crate::config::{OrganizationCheck, MatchPattern, RequireKind};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-glob-exists");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        let button_file = temp_dir.join("Button.tsx");
+        create_temp_file(&button_file, "export const Button = () => {}");
+        
+        let story_file = temp_dir.join("Button.stories.tsx");
+        create_temp_file(&story_file, "export default {}");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "component-needs-stories".to_string(),
+                description: None,
+                r#match: MatchPattern {
+                    glob: "**/*.tsx".to_string(),
+                    exclude_glob: vec![],
+                },
+                require: vec![
+                    RequireKind::SiblingGlob { glob: "*.stories.tsx".to_string() }
+                ],
+                when_imported_by: None,
+                enforce_location: None,
+            }
+        ];
+        
+        let all_files = vec![button_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        assert_eq!(diagnostics.diagnostics.len(), 0);
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_file_organization_exclude_glob() {
+        use crate::config::{OrganizationCheck, MatchPattern, RequireKind};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-exclude");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        let page_file = temp_dir.join("page.tsx");
+        create_temp_file(&page_file, "export default function Page() {}");
+        
+        let button_file = temp_dir.join("Button.tsx");
+        create_temp_file(&button_file, "export const Button = () => {}");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "component-needs-stories".to_string(),
+                description: None,
+                r#match: MatchPattern {
+                    glob: "**/*.tsx".to_string(),
+                    exclude_glob: vec!["**/page.tsx".to_string()],
+                },
+                require: vec![
+                    RequireKind::SiblingGlob { glob: "*.stories.tsx".to_string() }
+                ],
+                when_imported_by: None,
+                enforce_location: None,
+            }
+        ];
+        
+        let all_files = vec![page_file.clone(), button_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        // Only Button.tsx should be checked (page.tsx is excluded)
+        assert_eq!(diagnostics.diagnostics.len(), 1);
+        assert!(diagnostics.diagnostics[0].file.to_str().unwrap().contains("Button.tsx"));
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_file_organization_location_enforcement() {
+        use crate::config::{OrganizationCheck, MatchPattern, WhenImportedBy, EnforceLocation};
+        
+        let temp_dir = std::env::temp_dir().join("naechste-tests-file-org-location");
+        fs::create_dir_all(&temp_dir).ok();
+        
+        // Create a UI component in the wrong location
+        let wrong_location = temp_dir.join("lib");
+        fs::create_dir_all(&wrong_location).ok();
+        let button_file = wrong_location.join("Button.tsx");
+        create_temp_file(&button_file, "export const Button = () => {}");
+        
+        // Create an app file that imports it
+        let app_dir = temp_dir.join("app");
+        fs::create_dir_all(&app_dir).ok();
+        let page_file = app_dir.join("page.tsx");
+        create_temp_file(&page_file, "import { Button } from '@/lib/Button';");
+        
+        let mut config = get_test_config();
+        config.rules.file_organization.options.file_organization_checks = vec![
+            OrganizationCheck {
+                id: "ui-must-live-in-components".to_string(),
+                description: None,
+                r#match: MatchPattern {
+                    glob: "**/*.tsx".to_string(),
+                    exclude_glob: vec![],
+                },
+                require: vec![],
+                when_imported_by: Some(WhenImportedBy {
+                    importer_glob: "app/**".to_string(),
+                    import_path_matches: vec!["^@/lib/".to_string()],
+                }),
+                enforce_location: Some(EnforceLocation {
+                    must_be_under: vec!["components".to_string()],
+                    message: Some("UI components must live under components/".to_string()),
+                }),
+            }
+        ];
+        
+        let all_files = vec![button_file.clone(), page_file.clone()];
+        let mut diagnostics = DiagnosticCollection::new();
+        check_file_organization(&temp_dir, &all_files, &config, &mut diagnostics);
+        
+        // Should report that Button.tsx is in the wrong location
+        assert_eq!(diagnostics.diagnostics.len(), 1);
+        assert!(diagnostics.diagnostics[0].message.contains("UI components must live under components/"));
+        
+        fs::remove_dir_all(&temp_dir).ok();
+    }
 }
+

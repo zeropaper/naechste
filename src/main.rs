@@ -6,6 +6,7 @@ mod config;
 mod diagnostics;
 mod linter;
 mod rules;
+mod utils;
 
 #[derive(Parser)]
 #[command(name = "naechste")]
