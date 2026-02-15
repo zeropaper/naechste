@@ -503,10 +503,11 @@ This configuration will cause the linter to treat `MyComponent.test.int.ts` as a
 
 ### Complete Example Configuration
 
-Create `naechste.json` in your project root:
+Create `naechste.json`, `naechste.jsonc`, or `naechste.yaml` in your project root. Include the `$schema` key for editor validation:
 
 ```json
 {
+  "$schema": "https://zeropaper.github.io/naechste/schemas/naechste.json",
   "rules": {
     "server_side_exports": {
       "severity": "error",
@@ -534,6 +535,8 @@ Create `naechste.json` in your project root:
   }
 }
 ```
+
+The CLI automatically looks for `naechste.json`, `naechste.jsonc`, `naechste.yaml`, or `naechste.yml` when `--config` is not provided. JSON with comments (`.jsonc`) and YAML are supported.
 
 ### Severity Levels Explained
 
@@ -611,7 +614,7 @@ jobs:
 
 ### "Error: File not found: naechste.json"
 
-**Solution**: Create the config file in your project root with default settings (or use the example above).
+**Solution**: Create a config file (`naechste.json`, `naechste.jsonc`, or `naechste.yaml`) in your project root with default settings (or use the example above).
 
 ### "Warning: Nesting depth exceeds maximum"
 

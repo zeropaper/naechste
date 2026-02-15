@@ -12,13 +12,13 @@ pub struct Config {
 pub struct Rules {
     #[serde(default = "default_rule_config")]
     pub server_side_exports: RuleConfig,
-    
+
     #[serde(default = "default_rule_config")]
     pub component_nesting_depth: RuleConfig,
-    
+
     #[serde(default = "default_rule_config")]
     pub filename_style_consistency: RuleConfig,
-    
+
     #[serde(default = "default_rule_config")]
     pub missing_companion_files: RuleConfig,
 }
@@ -27,7 +27,7 @@ pub struct Rules {
 pub struct RuleConfig {
     #[serde(default = "default_severity")]
     pub severity: Severity,
-    
+
     #[serde(default)]
     pub options: RuleOptions,
 }
@@ -36,13 +36,13 @@ pub struct RuleConfig {
 pub struct RuleOptions {
     #[serde(default = "default_max_depth")]
     pub max_nesting_depth: usize,
-    
+
     #[serde(default = "default_filename_style")]
     pub filename_style: FilenameStyle,
-    
+
     #[serde(default)]
     pub require_test_files: bool,
-    
+
     #[serde(default)]
     pub require_story_files: bool,
 
@@ -136,7 +136,24 @@ impl Default for RuleOptions {
 impl Config {
     pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
-        let config: Config = serde_json::from_str(&contents)?;
+        let extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+
+        let config: Config = match extension.as_str() {
+            "yaml" | "yml" => serde_yaml::from_str(&contents)?,
+            "jsonc" => json5::from_str(&contents)?,
+            // Attempt strict JSON first, then fall back to JSON5 to allow comments
+            "json" | "" => {
+                serde_json::from_str(&contents).or_else(|_| json5::from_str(&contents))?
+            }
+            // Unknown extension: try JSON, then JSON5 (JSON with comments), then YAML
+            _ => serde_json::from_str(&contents)
+                .or_else(|_| json5::from_str(&contents))
+                .or_else(|_| serde_yaml::from_str(&contents))?,
+        };
         Ok(config)
     }
 }
@@ -144,16 +161,28 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use std::fs::File;
+    use std::io::Write;
 
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert!(matches!(config.rules.server_side_exports.severity, Severity::Warn));
-        assert!(matches!(config.rules.component_nesting_depth.severity, Severity::Warn));
-        assert!(matches!(config.rules.filename_style_consistency.severity, Severity::Warn));
-        assert!(matches!(config.rules.missing_companion_files.severity, Severity::Warn));
+        assert!(matches!(
+            config.rules.server_side_exports.severity,
+            Severity::Warn
+        ));
+        assert!(matches!(
+            config.rules.component_nesting_depth.severity,
+            Severity::Warn
+        ));
+        assert!(matches!(
+            config.rules.filename_style_consistency.severity,
+            Severity::Warn
+        ));
+        assert!(matches!(
+            config.rules.missing_companion_files.severity,
+            Severity::Warn
+        ));
     }
 
     #[test]
@@ -169,7 +198,7 @@ mod tests {
     fn test_severity_serialization() {
         let warn = serde_json::to_string(&Severity::Warn).unwrap();
         assert_eq!(warn, "\"warn\"");
-        
+
         let error = serde_json::to_string(&Severity::Error).unwrap();
         assert_eq!(error, "\"error\"");
     }
@@ -178,13 +207,13 @@ mod tests {
     fn test_filename_style_serialization() {
         let kebab = serde_json::to_string(&FilenameStyle::KebabCase).unwrap();
         assert_eq!(kebab, "\"kebab-case\"");
-        
+
         let camel = serde_json::to_string(&FilenameStyle::CamelCase).unwrap();
         assert_eq!(camel, "\"camel-case\"");
-        
+
         let pascal = serde_json::to_string(&FilenameStyle::PascalCase).unwrap();
         assert_eq!(pascal, "\"pascal-case\"");
-        
+
         let snake = serde_json::to_string(&FilenameStyle::SnakeCase).unwrap();
         assert_eq!(snake, "\"snake-case\"");
     }
@@ -193,7 +222,7 @@ mod tests {
     fn test_config_load_from_file() {
         let temp_dir = std::env::temp_dir();
         let config_path = temp_dir.join("test-config.json");
-        
+
         let config_json = r#"{
             "rules": {
                 "server_side_exports": {
@@ -220,20 +249,55 @@ mod tests {
                 }
             }
         }"#;
-        
+
         let mut file = File::create(&config_path).unwrap();
         file.write_all(config_json.as_bytes()).unwrap();
-        
+
         let config = Config::load(&config_path).unwrap();
-        
-        assert!(matches!(config.rules.server_side_exports.severity, Severity::Error));
-        assert!(matches!(config.rules.component_nesting_depth.severity, Severity::Warn));
-        assert_eq!(config.rules.component_nesting_depth.options.max_nesting_depth, 5);
-        assert!(matches!(config.rules.filename_style_consistency.severity, Severity::Error));
-        assert!(matches!(config.rules.filename_style_consistency.options.filename_style, FilenameStyle::PascalCase));
-        assert!(config.rules.missing_companion_files.options.require_test_files);
-        assert!(config.rules.missing_companion_files.options.require_story_files);
-        
+
+        assert!(matches!(
+            config.rules.server_side_exports.severity,
+            Severity::Error
+        ));
+        assert!(matches!(
+            config.rules.component_nesting_depth.severity,
+            Severity::Warn
+        ));
+        assert_eq!(
+            config
+                .rules
+                .component_nesting_depth
+                .options
+                .max_nesting_depth,
+            5
+        );
+        assert!(matches!(
+            config.rules.filename_style_consistency.severity,
+            Severity::Error
+        ));
+        assert!(matches!(
+            config
+                .rules
+                .filename_style_consistency
+                .options
+                .filename_style,
+            FilenameStyle::PascalCase
+        ));
+        assert!(
+            config
+                .rules
+                .missing_companion_files
+                .options
+                .require_test_files
+        );
+        assert!(
+            config
+                .rules
+                .missing_companion_files
+                .options
+                .require_story_files
+        );
+
         std::fs::remove_file(config_path).ok();
     }
 
@@ -241,7 +305,7 @@ mod tests {
     fn test_partial_config_uses_defaults() {
         let temp_dir = std::env::temp_dir();
         let config_path = temp_dir.join("test-partial-config.json");
-        
+
         let config_json = r#"{
             "rules": {
                 "server_side_exports": {
@@ -249,15 +313,21 @@ mod tests {
                 }
             }
         }"#;
-        
+
         let mut file = File::create(&config_path).unwrap();
         file.write_all(config_json.as_bytes()).unwrap();
-        
+
         let config = Config::load(&config_path).unwrap();
-        
-        assert!(matches!(config.rules.server_side_exports.severity, Severity::Error));
-        assert!(matches!(config.rules.component_nesting_depth.severity, Severity::Warn));
-        
+
+        assert!(matches!(
+            config.rules.server_side_exports.severity,
+            Severity::Error
+        ));
+        assert!(matches!(
+            config.rules.component_nesting_depth.severity,
+            Severity::Warn
+        ));
+
         std::fs::remove_file(config_path).ok();
     }
 
@@ -265,13 +335,73 @@ mod tests {
     fn test_invalid_config_file() {
         let temp_dir = std::env::temp_dir();
         let config_path = temp_dir.join("test-invalid-config.json");
-        
+
         let mut file = File::create(&config_path).unwrap();
         file.write_all(b"invalid json {").unwrap();
-        
+
         let result = Config::load(&config_path);
         assert!(result.is_err());
-        
+
+        std::fs::remove_file(config_path).ok();
+    }
+
+    #[test]
+    fn test_config_loads_jsonc_with_comments() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("test-config.jsonc");
+
+        let config_jsonc = r#"{
+            // comment allowed in jsonc
+            "rules": {
+                "server_side_exports": {
+                    "severity": "error"
+                }
+            }
+        }"#;
+
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(config_jsonc.as_bytes()).unwrap();
+
+        let config = Config::load(&config_path).unwrap();
+
+        assert!(matches!(
+            config.rules.server_side_exports.severity,
+            Severity::Error
+        ));
+
+        std::fs::remove_file(config_path).ok();
+    }
+
+    #[test]
+    fn test_config_loads_yaml() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("test-config.yaml");
+
+        let config_yaml = r#"
+rules:
+  missing_companion_files:
+    severity: error
+    options:
+      require_test_files: true
+"#;
+
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(config_yaml.as_bytes()).unwrap();
+
+        let config = Config::load(&config_path).unwrap();
+
+        assert!(matches!(
+            config.rules.missing_companion_files.severity,
+            Severity::Error
+        ));
+        assert!(
+            config
+                .rules
+                .missing_companion_files
+                .options
+                .require_test_files
+        );
+
         std::fs::remove_file(config_path).ok();
     }
 
