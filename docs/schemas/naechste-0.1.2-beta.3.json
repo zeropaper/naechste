@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zeropaper.github.io/naechste/schemas/naechste.json",
+  "$id": "https://zeropaper.github.io/naechste/schemas/naechste-0.1.2-beta.2.json",
   "title": "naechste configuration",
-  "description": "Configuration schema for naechste",
+  "description": "Configuration schema for naechste (version 0.1.2-beta.2)",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -217,7 +217,7 @@
   },
   "examples": [
     {
-      "$schema": "https://zeropaper.github.io/naechste/schemas/naechste.json",
+      "$schema": "https://zeropaper.github.io/naechste/schemas/naechste-0.1.2-beta.2.json",
       "rules": {
         "server_side_exports": {
           "severity": "error"
