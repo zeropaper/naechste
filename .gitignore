@@ -11,3 +11,6 @@ node_modules/
 # Binary output
 bin/naechste
 bin/naechste.exe
+
+# Playwright test results and screenshots
+.playwright*
