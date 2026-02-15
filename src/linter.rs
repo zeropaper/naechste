@@ -33,7 +33,6 @@ pub fn lint(path: &Path, config: &Config) -> DiagnosticCollection {
             rules::check_server_side_exports(file_path, config, &mut diagnostics);
             rules::check_component_nesting_depth(file_path, config, &mut diagnostics);
             rules::check_filename_style(file_path, config, &mut diagnostics);
-            rules::check_missing_companion_files(file_path, config, &mut diagnostics);
         }
     }
 
