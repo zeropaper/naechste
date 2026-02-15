@@ -364,12 +364,10 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let config_path = temp_dir.join("test-config.yaml");
 
-        let config_yaml = r#"
+                let config_yaml = r#"
 rules:
-  missing_companion_files:
-    severity: error
-    options:
-      require_test_files: true
+    file_organization:
+        severity: error
 "#;
 
         let mut file = File::create(&config_path).unwrap();
@@ -377,17 +375,7 @@ rules:
 
         let config = Config::load(&config_path).unwrap();
 
-        assert!(matches!(
-            config.rules.missing_companion_files.severity,
-            Severity::Error
-        ));
-        assert!(
-            config
-                .rules
-                .missing_companion_files
-                .options
-                .require_test_files
-        );
+        assert!(matches!(config.rules.file_organization.severity, Severity::Error));
 
         std::fs::remove_file(config_path).ok();
     }
