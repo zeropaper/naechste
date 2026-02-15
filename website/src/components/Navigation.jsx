@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -17,7 +17,7 @@ export function Navigation() {
             <Link to="/docs/rules" className="text-gray-600 hover:text-pistachio-600 transition">Rules</Link>
             <Link to="/docs/configuration" className="text-gray-600 hover:text-pistachio-600 transition">Configuration</Link>
             <Link to="/docs/schemas" className="text-gray-600 hover:text-pistachio-600 transition">Schemas</Link>
-            <a href="https://github.com/zeropaper/naechste" target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
+            <a href="https://github.com/zeropaper/naechste" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-pistachio-500 text-white font-semibold rounded-lg hover:bg-pistachio-600 transition-colors text-sm">
               GitHub
             </a>
           </div>

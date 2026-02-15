@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { ArrowRight, Zap, Target, FileText, Cog } from 'lucide-react'
 
 export default function Home() {
@@ -14,8 +14,8 @@ export default function Home() {
             <span className="font-semibold text-pistachio-700">naechste</span> brings consistent file structure and naming conventions to your React, Next.js, Vue, and Vite projects. Built with Rust, runs fast, integrates everywhere.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link to="/docs/getting-started" className="btn-primary">Get Started</Link>
-            <a href="https://github.com/zeropaper/naechste" target="_blank" rel="noopener noreferrer" className="btn-secondary">
+            <Link to="/docs/getting-started" className="px-6 py-3 bg-pistachio-500 text-white font-semibold rounded-lg hover:bg-pistachio-600 transition-colors">Get Started</Link>
+            <a href="https://github.com/zeropaper/naechste" target="_blank" rel="noopener noreferrer" className="px-6 py-3 border-2 border-pistachio-500 text-pistachio-700 font-semibold rounded-lg hover:bg-pistachio-50 transition-colors">
               View on GitHub →
             </a>
           </div>
