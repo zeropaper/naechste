@@ -17,9 +17,8 @@ The release process is fully automated via GitHub Actions. Here's what happens:
 # Update the version in package.json
 npm version patch  # or minor, or major (e.g., 0.1.0 -> 0.1.1)
 
-# Important! You will need to update Cargo.toml manually to keep versions in sync, or use a tool like `cargo-release` to automate this step. For now, update Cargo.toml to match package.json version.
-
-# Create and push the tag
+# Cargo.toml will be automatically updated by the CI workflow
+# Just create and push the tag
 git tag v$(node -p "require('./package.json').version")
 git push origin --tags
 ```
@@ -49,13 +48,16 @@ When a tag matching `v*` is pushed, the workflow automatically:
 3. **Uploads Binary Artifacts**
    - All binaries are attached to the GitHub Release
 
-4. **Publishes NPM Package**
+4. **Updates Cargo.toml**
+   - Automatically syncs version from git tag
+   - Commits and pushes changes to main branch
+   - Only commits if the version actually changed
+
+5. **Publishes NPM Package**
+   - Depends on Cargo.toml update succeeding
    - Package: `@zeropaper/naechste`
    - Registry: GitHub Packages (npm.pkg.github.com)
    - Version matches the git tag
-
-5. **Updates Cargo.toml**
-   - Automatically syncs version from package.json
 
 ## Version Numbering
 
@@ -185,7 +187,7 @@ Before creating a release:
 - [ ] Code is formatted: `cargo fmt --check`
 - [ ] No clippy warnings: `cargo clippy -- -D warnings`
 - [ ] Version updated in `package.json`
-- [ ] CHANGELOG.md updated (if exists)
+- [ ] CHANGELOG.md updated with new changes
 - [ ] README.md updated with new features
 - [ ] Commit and push all changes
 - [ ] Create and push tag

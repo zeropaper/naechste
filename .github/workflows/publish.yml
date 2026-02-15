@@ -95,9 +95,36 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.get-version.outputs.version, '-beta.') }}
 
+  update-cargo-version:
+    name: Update Cargo.toml version
+    needs: get-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+          fetch-depth: 0
+
+      - name: Update Cargo.toml
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add Cargo.toml
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: bump version to ${{ needs.get-version.outputs.version }}" && git push origin main)
+
   publish-npm:
     name: Publish to GitHub Packages
-    needs: [get-version, build-binaries]
+    needs: [get-version, build-binaries, update-cargo-version]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -127,30 +154,3 @@ jobs:
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  update-cargo-version:
-    name: Update Cargo.toml version
-    needs: get-version
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    if: success()
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: main
-          fetch-depth: 0
-
-      - name: Update Cargo.toml
-        run: |
-          VERSION="${{ needs.get-version.outputs.version }}"
-          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
-
-      - name: Commit and push if changed
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add Cargo.toml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: bump version to ${{ needs.get-version.outputs.version }}" && git push origin main)
