@@ -239,11 +239,10 @@ Create a `naechste.json`, `naechste.jsonc`, or `naechste.yaml` file in your proj
         "filename_style": "kebab-case"
       }
     },
-    "missing_companion_files": {
+    "file_organization": {
       "severity": "warn",
       "options": {
-        "require_test_files": false,
-        "require_story_files": false
+        "file_organization_checks": []
       }
     }
   }
@@ -486,6 +485,10 @@ The automated build creates binaries for:
 ## Contributing
 
 Contributions are welcome! Please open an issue or pull request.
+
+## Website
+
+Project documentation and a marketing landing page are published via GitHub Pages from the `docs/` folder. The published site will include links to the configuration JSON schemas available under `docs/schemas/`.
 
 ## License
 
