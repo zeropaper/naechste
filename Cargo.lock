@@ -131,6 +131,7 @@ dependencies = [
  "lazy_static",
  "windows-sys 0.59.0",
 ]
+
 [[package]]
 name = "cpufeatures"
 version = "0.2.17"
@@ -177,16 +178,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "hashbrown"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
-
-[[package]]
 name = "glob"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
+
+[[package]]
+name = "hashbrown"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 
 [[package]]
 name = "heck"
@@ -251,8 +252,8 @@ version = "0.1.2-beta.2"
 dependencies = [
  "clap",
  "colored",
- "json5",
  "glob",
+ "json5",
  "regex",
  "serde",
  "serde_json",
