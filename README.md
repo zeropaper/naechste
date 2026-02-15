@@ -6,7 +6,7 @@ A fast, Rust-first CLI to enforce Next.js file-structure conventions.
 
 - **Fast & Lightweight**: Single static binary built in Rust
 - **Deterministic**: Emits consistent diagnostics across runs
-- **Configurable**: Per-rule options and severity levels via `naechste.json`
+- **Configurable**: Per-rule options and severity levels via `naechste.(json|jsonc|yaml)`
 - **CI/CD Ready**: JSON output format and proper exit codes for automation
 - **GitHub Actions Compatible**: Easy integration with CI workflows
 
@@ -126,10 +126,11 @@ naechste --config my-config.json
 
 ### Configuration
 
-Create a `naechste.json` file in your project root:
+Create a `naechste.json`, `naechste.jsonc`, or `naechste.yaml` file in your project root. Include the schema reference for editor validation:
 
 ```json
 {
+  "$schema": "https://zeropaper.github.io/naechste/schemas/naechste.json",
   "rules": {
     "server_side_exports": {
       "severity": "error",
@@ -157,6 +158,10 @@ Create a `naechste.json` file in your project root:
   }
 }
 ```
+
+`naechste` automatically detects `naechste.json`, `naechste.jsonc`, `naechste.yaml`, or `naechste.yml` when no `--config` is provided. JSON with comments (`.jsonc`) and YAML are supported.
+
+Latest schema URL: `https://zeropaper.github.io/naechste/schemas/naechste.json` (versioned: `https://zeropaper.github.io/naechste/schemas/naechste-0.1.2-beta.2.json`).
 
 ### Severity Levels
 
@@ -394,4 +399,3 @@ Contributions are welcome! Please open an issue or pull request.
 ## License
 
 MIT
-

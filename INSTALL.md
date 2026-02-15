@@ -90,10 +90,11 @@ pnpm lint:structure
 
 ## Configuration
 
-Create `naechste.json` in your project root:
+Create `naechste.json`, `naechste.jsonc`, or `naechste.yaml` in your project root and reference the schema for editor validation:
 
 ```json
 {
+  "$schema": "https://zeropaper.github.io/naechste/schemas/naechste.json",
   "rules": {
     "server_side_exports": {
       "severity": "error"
@@ -120,6 +121,8 @@ Create `naechste.json` in your project root:
   }
 }
 ```
+
+`naechste` will automatically pick up `naechste.json`, `naechste.jsonc`, `naechste.yaml`, or `naechste.yml` when no `--config` is provided. JSON with comments (`.jsonc`) and YAML are both supported.
 
 ## Troubleshooting
 

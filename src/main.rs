@@ -38,8 +38,8 @@ fn main() {
 
     // Determine config path - if not explicitly provided, look in project directory
     let config_path = if cli.config.to_str() == Some("naechste.json") {
-        // Default case: look for config in the project directory
-        cli.path.join("naechste.json")
+        // Default case: look for config in the project directory across supported formats
+        find_config_in_directory(&cli.path)
     } else {
         // Explicitly provided config path
         cli.config
@@ -64,4 +64,23 @@ fn main() {
     // Exit with appropriate code
     let exit_code = if diagnostics.has_errors() { 1 } else { 0 };
     process::exit(exit_code);
+}
+
+fn find_config_in_directory(base: &std::path::Path) -> std::path::PathBuf {
+    let candidates = [
+        "naechste.json",
+        "naechste.jsonc",
+        "naechste.yaml",
+        "naechste.yml",
+    ];
+
+    for candidate in candidates {
+        let path = base.join(candidate);
+        if path.exists() {
+            return path;
+        }
+    }
+
+    // Fallback to the default JSON path even if it does not exist
+    base.join("naechste.json")
 }

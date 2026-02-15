@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeropaper.github.io/naechste/schemas/naechste.json",
+  "title": "naechste configuration",
+  "description": "Configuration schema for naechste",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to the naechste configuration schema URL"
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "server_side_exports": { "$ref": "#/$defs/ruleConfig" },
+        "component_nesting_depth": { "$ref": "#/$defs/ruleConfig" },
+        "filename_style_consistency": { "$ref": "#/$defs/ruleConfig" },
+        "missing_companion_files": { "$ref": "#/$defs/ruleConfig" }
+      },
+      "default": {}
+    }
+  },
+  "required": [],
+  "$defs": {
+    "ruleConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "severity": { "$ref": "#/$defs/severity" },
+        "options": { "$ref": "#/$defs/ruleOptions" }
+      },
+      "default": {
+        "severity": "warn",
+        "options": {}
+      }
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["warn", "error"],
+      "default": "warn",
+      "description": "Severity level for the rule"
+    },
+    "ruleOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_nesting_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3,
+          "description": "Maximum allowed folder nesting depth for components"
+        },
+        "filename_style": {
+          "type": "string",
+          "enum": ["kebab-case", "camel-case", "pascal-case", "snake-case"],
+          "default": "kebab-case",
+          "description": "Preferred casing for component filenames"
+        },
+        "require_test_files": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require a companion test file for each component"
+        },
+        "require_story_files": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require a companion Storybook story file for each component"
+        },
+        "companion_file_patterns": {
+          "$ref": "#/$defs/companionFilePatterns",
+          "description": "Custom companion file checks"
+        }
+      },
+      "default": {}
+    },
+    "companionFilePatterns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "properties": {
+        "integration_tests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "page_user_scenarios": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "custom": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "default": {}
+        }
+      },
+      "default": {}
+    }
+  },
+  "examples": [
+    {
+      "$schema": "https://zeropaper.github.io/naechste/schemas/naechste.json",
+      "rules": {
+        "server_side_exports": { "severity": "error" },
+        "component_nesting_depth": {
+          "severity": "warn",
+          "options": { "max_nesting_depth": 5 }
+        }
+      }
+    }
+  ]
+}
