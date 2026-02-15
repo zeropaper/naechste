@@ -20,9 +20,6 @@ pub struct Rules {
     pub filename_style_consistency: RuleConfig,
 
     #[serde(default = "default_rule_config")]
-    pub missing_companion_files: RuleConfig,
-    
-    #[serde(default = "default_rule_config")]
     pub file_organization: RuleConfig,
 }
 
@@ -42,16 +39,6 @@ pub struct RuleOptions {
 
     #[serde(default = "default_filename_style")]
     pub filename_style: FilenameStyle,
-
-    #[serde(default)]
-    pub require_test_files: bool,
-
-    #[serde(default)]
-    pub require_story_files: bool,
-
-    /// Custom companion file patterns for additional checks
-    #[serde(default)]
-    pub companion_file_patterns: CompanionFilePatterns,
     
     /// File organization checks
     #[serde(default)]
@@ -72,22 +59,6 @@ pub enum FilenameStyle {
     CamelCase,
     PascalCase,
     SnakeCase,
-}
-
-/// Custom companion file patterns configuration
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct CompanionFilePatterns {
-    /// Integration test patterns like ["*.test.int.ts", "*.test.int.tsx"]
-    #[serde(default)]
-    pub integration_tests: Vec<String>,
-
-    /// Page user scenario patterns like ["page.us.md"]
-    #[serde(default)]
-    pub page_user_scenarios: Vec<String>,
-
-    /// Custom companion file patterns (key = category name, value = list of glob patterns)
-    #[serde(default)]
-    pub custom: std::collections::HashMap<String, Vec<String>>,
 }
 
 /// File organization check configuration
@@ -194,7 +165,6 @@ impl Default for Rules {
             server_side_exports: default_rule_config(),
             component_nesting_depth: default_rule_config(),
             filename_style_consistency: default_rule_config(),
-            missing_companion_files: default_rule_config(),
             file_organization: default_rule_config(),
         }
     }
@@ -205,9 +175,6 @@ impl Default for RuleOptions {
         RuleOptions {
             max_nesting_depth: default_max_depth(),
             filename_style: default_filename_style(),
-            require_test_files: false,
-            require_story_files: false,
-            companion_file_patterns: CompanionFilePatterns::default(),
             file_organization_checks: Vec::new(),
         }
     }
@@ -247,22 +214,10 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert!(matches!(
-            config.rules.server_side_exports.severity,
-            Severity::Warn
-        ));
-        assert!(matches!(
-            config.rules.component_nesting_depth.severity,
-            Severity::Warn
-        ));
-        assert!(matches!(
-            config.rules.filename_style_consistency.severity,
-            Severity::Warn
-        ));
-        assert!(matches!(
-            config.rules.missing_companion_files.severity,
-            Severity::Warn
-        ));
+        assert!(matches!(config.rules.server_side_exports.severity, Severity::Warn));
+        assert!(matches!(config.rules.component_nesting_depth.severity, Severity::Warn));
+        assert!(matches!(config.rules.filename_style_consistency.severity, Severity::Warn));
+        assert!(matches!(config.rules.file_organization.severity, Severity::Warn));
     }
 
     #[test]
@@ -270,8 +225,6 @@ mod tests {
         let options = RuleOptions::default();
         assert_eq!(options.max_nesting_depth, 3);
         assert!(matches!(options.filename_style, FilenameStyle::KebabCase));
-        assert!(!options.require_test_files);
-        assert!(!options.require_story_files);
     }
 
     #[test]
@@ -319,13 +272,6 @@ mod tests {
                     "options": {
                         "filename_style": "pascal-case"
                     }
-                },
-                "missing_companion_files": {
-                    "severity": "warn",
-                    "options": {
-                        "require_test_files": true,
-                        "require_story_files": true
-                    }
                 }
             }
         }"#;
@@ -334,50 +280,11 @@ mod tests {
         file.write_all(config_json.as_bytes()).unwrap();
 
         let config = Config::load(&config_path).unwrap();
-
-        assert!(matches!(
-            config.rules.server_side_exports.severity,
-            Severity::Error
-        ));
-        assert!(matches!(
-            config.rules.component_nesting_depth.severity,
-            Severity::Warn
-        ));
-        assert_eq!(
-            config
-                .rules
-                .component_nesting_depth
-                .options
-                .max_nesting_depth,
-            5
-        );
-        assert!(matches!(
-            config.rules.filename_style_consistency.severity,
-            Severity::Error
-        ));
-        assert!(matches!(
-            config
-                .rules
-                .filename_style_consistency
-                .options
-                .filename_style,
-            FilenameStyle::PascalCase
-        ));
-        assert!(
-            config
-                .rules
-                .missing_companion_files
-                .options
-                .require_test_files
-        );
-        assert!(
-            config
-                .rules
-                .missing_companion_files
-                .options
-                .require_story_files
-        );
-
+        assert!(matches!(config.rules.server_side_exports.severity, Severity::Error));
+        assert!(matches!(config.rules.component_nesting_depth.severity, Severity::Warn));
+        assert_eq!(config.rules.component_nesting_depth.options.max_nesting_depth, 5);
+        assert!(matches!(config.rules.filename_style_consistency.severity, Severity::Error));
+        assert!(matches!(config.rules.filename_style_consistency.options.filename_style, FilenameStyle::PascalCase));
         std::fs::remove_file(config_path).ok();
     }
 

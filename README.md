@@ -41,14 +41,7 @@ Enforces consistent filename naming conventions.
 
 **Note**: Special Next.js files (`page`, `layout`, `template`, `loading`, `error`, `not-found`, `route`, `default`, `middleware`) are automatically skipped.
 
-### 4. Missing Companion Files (`missing-companion-files`)
-Ensures components have associated test and/or story files.
-
-**Options:**
-- `require_test_files`: Require `.test.tsx`, `.spec.tsx`, or `__tests__/` files
-- `require_story_files`: Require `.stories.tsx` or `.story.tsx` files
-
-### 5. File Organization (`file-organization`)
+### 4. File Organization (`file-organization`)
 Enforces custom file organization rules based on glob patterns and import relationships.
 
 **Features:**
