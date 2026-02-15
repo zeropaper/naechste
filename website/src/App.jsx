@@ -9,7 +9,7 @@ import SchemasPage from './pages/SchemasPage'
 
 export default function App() {
   return (
-    <Router>
+    <Router basename="/naechste/">
       <div className="min-h-screen bg-white text-gray-900 flex flex-col">
         <Navigation />
         <main className="flex-grow">
