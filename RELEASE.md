@@ -17,6 +17,8 @@ The release process is fully automated via GitHub Actions. Here's what happens:
 # Update the version in package.json
 npm version patch  # or minor, or major (e.g., 0.1.0 -> 0.1.1)
 
+# Important! You will need to update Cargo.toml manually to keep versions in sync, or use a tool like `cargo-release` to automate this step. For now, update Cargo.toml to match package.json version.
+
 # Create and push the tag
 git tag v$(node -p "require('./package.json').version")
 git push origin --tags
