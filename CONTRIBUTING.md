@@ -235,7 +235,7 @@ cargo build --release
 See [RELEASE.md](RELEASE.md) for detailed information about creating releases.
 
 Quick summary:
-1. Update version in `package.json`
+1. Update version in `package.json` and `Cargo.toml`
 2. Create and push a git tag (e.g., `v0.1.1`)
 3. GitHub Actions automatically builds and publishes
 
