@@ -33,11 +33,27 @@ pub fn lint(path: &Path, config: &Config) -> DiagnosticCollection {
             rules::check_server_side_exports(file_path, config, &mut diagnostics);
             rules::check_component_nesting_depth(file_path, config, &mut diagnostics);
             rules::check_filename_style(file_path, config, &mut diagnostics);
+
+            // Bassist per-file rules
+            rules::check_bassist_locale_nesting(file_path, config, &mut diagnostics);
+            rules::check_bassist_service_client_restriction(file_path, config, &mut diagnostics);
+            rules::check_bassist_supabase_client_imports(file_path, config, &mut diagnostics);
+            rules::check_bassist_i18n_hook_usage(file_path, config, &mut diagnostics);
+            rules::check_bassist_test_colocation(file_path, config, &mut diagnostics);
+            rules::check_bassist_test_naming(file_path, config, &mut diagnostics);
+            rules::check_bassist_api_route_structure(file_path, config, &mut diagnostics);
+            rules::check_bassist_domain_isolation(file_path, config, &mut diagnostics);
+            rules::check_bassist_i18n_namespaces(file_path, config, &mut diagnostics);
         }
     }
 
     // Run batch rules that need all files
     rules::check_file_organization(path, &all_files, config, &mut diagnostics);
+
+    // Bassist batch rules
+    rules::check_bassist_domain_structure(path, &all_files, config, &mut diagnostics);
+    rules::check_bassist_locale_layout(path, &all_files, config, &mut diagnostics);
+    rules::check_bassist_route_group_names(path, &all_files, config, &mut diagnostics);
 
     diagnostics
 }

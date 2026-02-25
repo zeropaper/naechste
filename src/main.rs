@@ -24,6 +24,10 @@ struct Cli {
     /// Path to configuration file
     #[arg(short, long, default_value = "naechste.json")]
     config: PathBuf,
+
+    /// Preset to apply (e.g., "bassist")
+    #[arg(short, long)]
+    preset: Option<String>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -47,11 +51,24 @@ fn main() {
     };
 
     // Load configuration
-    let config = config::Config::load(&config_path).unwrap_or_else(|e| {
+    let mut config = config::Config::load(&config_path).unwrap_or_else(|e| {
         eprintln!("Warning: Could not load config file: {}", e);
         eprintln!("Using default configuration");
         config::Config::default()
     });
+
+    // Apply CLI preset if provided (overrides config file preset)
+    if let Some(preset_str) = &cli.preset {
+        match preset_str.to_lowercase().as_str() {
+            "bassist" => {
+                config.preset = Some(config::PresetName::Bassist);
+                config.apply_preset();
+            }
+            _ => {
+                eprintln!("Warning: Unknown preset '{}', ignoring", preset_str);
+            }
+        }
+    }
 
     // Run the linter
     let diagnostics = linter::lint(&cli.path, &config);

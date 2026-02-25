@@ -258,6 +258,93 @@ Latest schema URL: `https://zeropaper.github.io/naechste/schemas/naechste.json` 
 - `warn`: Reports issue but doesn't fail CI (exit code 0)
 - `error`: Reports issue and fails CI (exit code 1)
 
+## Presets
+
+naechste includes built-in presets for popular Next.js architectural patterns. Presets apply predefined rule configurations optimized for specific conventions.
+
+### Bassist Preset
+
+The **Bassist preset** enforces conventions from the Bassist Next.js architecture framework, designed for structured business idea evaluation applications using Next.js 16 App Router with Supabase and i18n.
+
+**Enable via CLI:**
+```bash
+naechste --preset bassist
+```
+
+**Enable via config file:**
+```json
+{
+  "preset": "bassist"
+}
+```
+
+#### Bassist Rules
+
+The preset enables 12 specialized rules:
+
+**HIGH PRIORITY (Errors):**
+
+1. **`bassist-domain-structure`**: Route groups must contain `[locale]/` directories for i18n support
+2. **`bassist-locale-layout`**: Each `[locale]/` directory must have a `layout.tsx` file
+3. **`bassist-locale-nesting`**: Page files in route groups must be inside `[locale]/` directories
+4. **`bassist-service-client-restriction`**: Service client (bypasses RLS) must only appear in test files or seed scripts
+5. **`bassist-supabase-client-imports`**: Client components use `@/lib/supabase/client`, server components use `@/lib/supabase/server`
+6. **`bassist-i18n-hook-usage`**: Client components use `useExtracted()`, server components use `getExtracted()`
+
+**MEDIUM PRIORITY (Warnings):**
+
+7. **`bassist-route-group-names`**: Route groups should match configured domain names (admin, auth, profiles, etc.)
+8. **`bassist-test-colocation`**: Test files should be colocated with implementation, not in root `/tests` directory
+9. **`bassist-test-naming`**: Test files should use correct extension based on type (`.test.ts`, `.test.db.ts`, `.test.gen.ts`, `.spec.ts`)
+10. **`bassist-api-route-structure`**: API routes (`route.ts`) should be in `/api/` directories
+11. **`bassist-domain-isolation`**: Domains should not import from sibling domain's `lib/` or `components/`
+12. **`bassist-i18n-namespaces`**: i18n keys should follow `domain.context` pattern (e.g., `auth.login`)
+
+#### Configuration Options
+
+Customize Bassist rules via config file:
+
+```json
+{
+  "preset": "bassist",
+  "rules": {
+    "bassist_route_group_names": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "allowed_route_groups": [
+            "admin", "auth", "profiles", "custom-domain"
+          ]
+        }
+      }
+    },
+    "bassist_domain_isolation": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "cross_domain_allowed_paths": ["types", "schemas", "constants"]
+        }
+      }
+    },
+    "bassist_test_naming": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "enforce_test_naming": false
+        }
+      }
+    }
+  }
+}
+```
+
+**Configuration fields:**
+- `allowed_route_groups`: List of valid route group names (default: admin, auth, chat, feature-flags, profiles, projects, thoughts)
+- `cross_domain_allowed_paths`: Subdirectories allowed for cross-domain imports (default: types, schemas)
+- `enforce_test_naming`: Whether to error (true) or warn (false) on incorrect test file extensions
+
+**Example:** See `examples/bassist-config.json` and `examples/bassist-nextjs-app/`
+
 ### Output Formats
 
 #### Human-Readable (default)

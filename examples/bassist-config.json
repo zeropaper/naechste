@@ -1,0 +1,69 @@
+{
+  "preset": "bassist",
+  "rules": {
+    "bassist_domain_structure": {
+      "severity": "error"
+    },
+    "bassist_locale_layout": {
+      "severity": "error"
+    },
+    "bassist_locale_nesting": {
+      "severity": "error"
+    },
+    "bassist_route_group_names": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "allowed_route_groups": [
+            "admin",
+            "auth",
+            "chat",
+            "feature-flags",
+            "profiles",
+            "projects",
+            "thoughts",
+            "custom-domain"
+          ]
+        }
+      }
+    },
+    "bassist_service_client_restriction": {
+      "severity": "error"
+    },
+    "bassist_supabase_client_imports": {
+      "severity": "error"
+    },
+    "bassist_i18n_hook_usage": {
+      "severity": "error"
+    },
+    "bassist_test_colocation": {
+      "severity": "warn"
+    },
+    "bassist_test_naming": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "enforce_test_naming": false
+        }
+      }
+    },
+    "bassist_api_route_structure": {
+      "severity": "warn"
+    },
+    "bassist_domain_isolation": {
+      "severity": "warn",
+      "options": {
+        "bassist": {
+          "cross_domain_allowed_paths": [
+            "types",
+            "schemas",
+            "constants"
+          ]
+        }
+      }
+    },
+    "bassist_i18n_namespaces": {
+      "severity": "warn"
+    }
+  }
+}

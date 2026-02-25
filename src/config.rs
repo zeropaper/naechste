@@ -4,8 +4,18 @@ use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    /// Optional preset name to apply
+    #[serde(default)]
+    pub preset: Option<PresetName>,
+
     #[serde(default)]
     pub rules: Rules,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PresetName {
+    Bassist,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +31,43 @@ pub struct Rules {
 
     #[serde(default = "default_rule_config")]
     pub file_organization: RuleConfig,
+
+    // Bassist preset rules
+    #[serde(default = "default_rule_config")]
+    pub bassist_domain_structure: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_locale_layout: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_locale_nesting: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_route_group_names: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_service_client_restriction: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_supabase_client_imports: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_i18n_hook_usage: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_test_colocation: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_test_naming: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_api_route_structure: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_domain_isolation: RuleConfig,
+
+    #[serde(default = "default_rule_config")]
+    pub bassist_i18n_namespaces: RuleConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +90,44 @@ pub struct RuleOptions {
     /// File organization checks
     #[serde(default)]
     pub file_organization_checks: Vec<OrganizationCheck>,
+
+    /// Bassist-specific options
+    #[serde(default)]
+    pub bassist: BassistOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BassistOptions {
+    /// Allowed route group names (e.g., "admin", "auth", etc.)
+    #[serde(default = "default_allowed_route_groups")]
+    pub allowed_route_groups: Vec<String>,
+
+    /// Paths allowed for cross-domain imports (e.g., "types", "schemas")
+    #[serde(default = "default_cross_domain_allowed_paths")]
+    pub cross_domain_allowed_paths: Vec<String>,
+
+    /// Whether to enforce strict test naming (errors) or just warn
+    #[serde(default)]
+    pub enforce_test_naming: bool,
+}
+
+fn default_allowed_route_groups() -> Vec<String> {
+    vec![
+        "admin".to_string(),
+        "auth".to_string(),
+        "chat".to_string(),
+        "feature-flags".to_string(),
+        "profiles".to_string(),
+        "projects".to_string(),
+        "thoughts".to_string(),
+    ]
+}
+
+fn default_cross_domain_allowed_paths() -> Vec<String> {
+    vec![
+        "types".to_string(),
+        "schemas".to_string(),
+    ]
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -154,6 +239,7 @@ fn default_filename_style() -> FilenameStyle {
 impl Default for Config {
     fn default() -> Self {
         Config {
+            preset: None,
             rules: Rules::default(),
         }
     }
@@ -166,6 +252,18 @@ impl Default for Rules {
             component_nesting_depth: default_rule_config(),
             filename_style_consistency: default_rule_config(),
             file_organization: default_rule_config(),
+            bassist_domain_structure: default_rule_config(),
+            bassist_locale_layout: default_rule_config(),
+            bassist_locale_nesting: default_rule_config(),
+            bassist_route_group_names: default_rule_config(),
+            bassist_service_client_restriction: default_rule_config(),
+            bassist_supabase_client_imports: default_rule_config(),
+            bassist_i18n_hook_usage: default_rule_config(),
+            bassist_test_colocation: default_rule_config(),
+            bassist_test_naming: default_rule_config(),
+            bassist_api_route_structure: default_rule_config(),
+            bassist_domain_isolation: default_rule_config(),
+            bassist_i18n_namespaces: default_rule_config(),
         }
     }
 }
@@ -176,6 +274,17 @@ impl Default for RuleOptions {
             max_nesting_depth: default_max_depth(),
             filename_style: default_filename_style(),
             file_organization_checks: Vec::new(),
+            bassist: BassistOptions::default(),
+        }
+    }
+}
+
+impl Default for BassistOptions {
+    fn default() -> Self {
+        BassistOptions {
+            allowed_route_groups: default_allowed_route_groups(),
+            cross_domain_allowed_paths: default_cross_domain_allowed_paths(),
+            enforce_test_naming: false,
         }
     }
 }
@@ -189,7 +298,7 @@ impl Config {
             .unwrap_or_default()
             .to_ascii_lowercase();
 
-        let config: Config = match extension.as_str() {
+        let mut config: Config = match extension.as_str() {
             "yaml" | "yml" => serde_yaml::from_str(&contents)?,
             "jsonc" => json5::from_str(&contents)?,
             // Attempt strict JSON first, then fall back to JSON5 to allow comments
@@ -201,7 +310,37 @@ impl Config {
                 .or_else(|_| json5::from_str(&contents))
                 .or_else(|_| serde_yaml::from_str(&contents))?,
         };
+        
+        // Apply preset if specified
+        config.apply_preset();
+        
         Ok(config)
+    }
+
+    /// Apply preset configuration if a preset is specified
+    pub fn apply_preset(&mut self) {
+        if let Some(preset) = self.preset {
+            match preset {
+                PresetName::Bassist => self.apply_bassist_preset(),
+            }
+        }
+    }
+
+    /// Apply Bassist preset configuration
+    fn apply_bassist_preset(&mut self) {
+        // Enable Bassist rules with Error severity
+        self.rules.bassist_domain_structure.severity = Severity::Error;
+        self.rules.bassist_locale_layout.severity = Severity::Error;
+        self.rules.bassist_locale_nesting.severity = Severity::Error;
+        self.rules.bassist_route_group_names.severity = Severity::Warn;
+        self.rules.bassist_service_client_restriction.severity = Severity::Error;
+        self.rules.bassist_supabase_client_imports.severity = Severity::Error;
+        self.rules.bassist_i18n_hook_usage.severity = Severity::Error;
+        self.rules.bassist_test_colocation.severity = Severity::Warn;
+        self.rules.bassist_test_naming.severity = Severity::Warn;
+        self.rules.bassist_api_route_structure.severity = Severity::Warn;
+        self.rules.bassist_domain_isolation.severity = Severity::Warn;
+        self.rules.bassist_i18n_namespaces.severity = Severity::Warn;
     }
 }
 

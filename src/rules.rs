@@ -323,6 +323,587 @@ pub fn check_file_organization(
     }
 }
 
+// ==================== BASSIST PRESET RULES ====================
+
+/// Check that each route group has a proper domain structure with [locale] directory
+pub fn check_bassist_domain_structure(
+    project_root: &Path,
+    all_files: &[std::path::PathBuf],
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    use std::collections::HashSet;
+    
+    // Find all route groups in app directory
+    let mut route_groups = HashSet::new();
+    
+    for file in all_files {
+        let path_str = file.to_str().unwrap_or("");
+        
+        // Match app/(route-group)/ pattern
+        if let Some(app_pos) = path_str.find("/app/") {
+            let after_app = &path_str[app_pos + 5..];
+            if after_app.starts_with('(') {
+                if let Some(close_paren) = after_app.find(')') {
+                    let route_group = &after_app[1..close_paren];
+                    let route_group_path = project_root.join("app").join(format!("({})", route_group));
+                    route_groups.insert(route_group_path);
+                }
+            }
+        }
+    }
+    
+    // Check each route group has [locale]/ directory
+    for route_group_path in route_groups {
+        let locale_dir = route_group_path.join("[locale]");
+        if !locale_dir.exists() {
+            diagnostics.add(Diagnostic {
+                severity: config.rules.bassist_domain_structure.severity,
+                rule: "bassist-domain-structure".to_string(),
+                message: format!(
+                    "Route group '{}' must contain a '[locale]/' directory for i18n support",
+                    route_group_path.file_name().unwrap().to_str().unwrap()
+                ),
+                file: route_group_path.clone(),
+                line: None,
+            });
+        }
+    }
+}
+
+/// Check that each route group's [locale] directory has a layout.tsx
+pub fn check_bassist_locale_layout(
+    project_root: &Path,
+    all_files: &[std::path::PathBuf],
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    use std::collections::HashSet;
+    
+    // Find all [locale] directories in route groups
+    let mut locale_dirs = HashSet::new();
+    
+    for file in all_files {
+        let path_str = file.to_str().unwrap_or("");
+        
+        // Match app/(route-group)/[locale]/ pattern
+        if let Some(app_pos) = path_str.find("/app/") {
+            let after_app = &path_str[app_pos + 5..];
+            if after_app.starts_with('(') {
+                if let Some(close_paren) = after_app.find(')') {
+                    let after_route_group = &after_app[close_paren + 1..];
+                    if after_route_group.starts_with("/[locale]") {
+                        let route_group = &after_app[1..close_paren];
+                        let locale_path = project_root
+                            .join("app")
+                            .join(format!("({})", route_group))
+                            .join("[locale]");
+                        locale_dirs.insert(locale_path);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Check each [locale] directory has layout.tsx
+    for locale_dir in locale_dirs {
+        let layout_file = locale_dir.join("layout.tsx");
+        let layout_js = locale_dir.join("layout.jsx");
+        
+        if !layout_file.exists() && !layout_js.exists() {
+            diagnostics.add(Diagnostic {
+                severity: config.rules.bassist_locale_layout.severity,
+                rule: "bassist-locale-layout".to_string(),
+                message: format!(
+                    "Locale directory '{}' must contain a layout.tsx file for i18n routing",
+                    locale_dir.display()
+                ),
+                file: locale_dir.clone(),
+                line: None,
+            });
+        }
+    }
+}
+
+/// Check that pages in route groups are inside [locale]/ dynamic segments
+pub fn check_bassist_locale_nesting(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    
+    // Check for special Next.js files in route groups
+    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    let is_special_file = matches!(file_name, "page.tsx" | "page.jsx" | "layout.tsx" | "layout.jsx" | "loading.tsx" | "loading.jsx" | "error.tsx" | "error.jsx" | "not-found.tsx" | "not-found.jsx");
+    
+    if !is_special_file {
+        return;
+    }
+    
+    // Check if file is in a route group
+    if let Some(app_pos) = path_str.find("/app/") {
+        let after_app = &path_str[app_pos + 5..];
+        if after_app.starts_with('(') {
+            // In a route group - check if it's inside [locale]/
+            if !after_app.contains("/[locale]/") {
+                diagnostics.add(Diagnostic {
+                    severity: config.rules.bassist_locale_nesting.severity,
+                    rule: "bassist-locale-nesting".to_string(),
+                    message: format!(
+                        "Page file '{}' in route group must be inside [locale]/ directory for i18n routing",
+                        file_name
+                    ),
+                    file: path.to_path_buf(),
+                    line: None,
+                });
+            }
+        }
+    }
+}
+
+/// Check that route group names match allowed list
+pub fn check_bassist_route_group_names(
+    project_root: &Path,
+    all_files: &[std::path::PathBuf],
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    use std::collections::HashSet;
+    
+    let allowed_groups: HashSet<&str> = config
+        .rules
+        .bassist_route_group_names
+        .options
+        .bassist
+        .allowed_route_groups
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+    
+    let mut found_groups = HashSet::new();
+    
+    // Find all route groups
+    for file in all_files {
+        let path_str = file.to_str().unwrap_or("");
+        
+        if let Some(app_pos) = path_str.find("/app/") {
+            let after_app = &path_str[app_pos + 5..];
+            if after_app.starts_with('(') {
+                if let Some(close_paren) = after_app.find(')') {
+                    let route_group = &after_app[1..close_paren];
+                    found_groups.insert(route_group.to_string());
+                }
+            }
+        }
+    }
+    
+    // Check for unknown route groups
+    for group in found_groups {
+        if !allowed_groups.contains(group.as_str()) {
+            let route_group_path = project_root.join("app").join(format!("({})", group));
+            diagnostics.add(Diagnostic {
+                severity: config.rules.bassist_route_group_names.severity,
+                rule: "bassist-route-group-names".to_string(),
+                message: format!(
+                    "Unknown route group '({})'. Expected one of: {}",
+                    group,
+                    allowed_groups.iter().map(|s| format!("({})", s)).collect::<Vec<_>>().join(", ")
+                ),
+                file: route_group_path,
+                line: None,
+            });
+        }
+    }
+}
+
+/// Check that service client is not used in production code
+pub fn check_bassist_service_client_restriction(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    
+    // Allow service client in test files and seed directories
+    if path_str.contains(".test.") || path_str.contains(".spec.") || path_str.contains("/seed/") {
+        return;
+    }
+    
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    // Check for service client usage
+    let service_client_patterns = [
+        r"createTestServiceClient",
+        r#"from\s+['"]@/lib/supabase/service['"]"#,
+        r#"from\s+['"]@/tests/utils/supabase-service['"]"#,
+    ];
+    
+    for pattern_str in &service_client_patterns {
+        if let Ok(re) = Regex::new(pattern_str) {
+            if re.is_match(&content) {
+                diagnostics.add(Diagnostic {
+                    severity: config.rules.bassist_service_client_restriction.severity,
+                    rule: "bassist-service-client-restriction".to_string(),
+                    message: "Service client (createTestServiceClient) must only be used in test files or seed scripts. This bypasses RLS policies and is a security risk in production code.".to_string(),
+                    file: path.to_path_buf(),
+                    line: None,
+                });
+                break;
+            }
+        }
+    }
+}
+
+/// Check correct Supabase client imports based on file type
+pub fn check_bassist_supabase_client_imports(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    // Check for "use client" directive in first 10 lines
+    let has_use_client = content.lines().take(10).any(|line| {
+        let trimmed = line.trim();
+        trimmed == "'use client'" || trimmed == "\"use client\""
+    });
+    
+    // Check for server client import
+    let has_server_import = Regex::new(r#"from\s+['"]@/lib/supabase/server['"]"#)
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    // Check for browser client import
+    let has_client_import = Regex::new(r#"from\s+['"]@/lib/supabase/client['"]"#)
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    if has_use_client && has_server_import {
+        diagnostics.add(Diagnostic {
+            severity: config.rules.bassist_supabase_client_imports.severity,
+            rule: "bassist-supabase-client-imports".to_string(),
+            message: "Client component ('use client') should import from '@/lib/supabase/client', not '@/lib/supabase/server'".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    }
+    
+    if !has_use_client && has_client_import {
+        // Check if this might be a server component (files in app/ that aren't client)
+        let path_str = path.to_str().unwrap_or("");
+        if path_str.contains("/app/") {
+            diagnostics.add(Diagnostic {
+                severity: config.rules.bassist_supabase_client_imports.severity,
+                rule: "bassist-supabase-client-imports".to_string(),
+                message: "Server component should import from '@/lib/supabase/server', not '@/lib/supabase/client'".to_string(),
+                file: path.to_path_buf(),
+                line: None,
+            });
+        }
+    }
+}
+
+/// Check correct i18n hook usage based on file type
+pub fn check_bassist_i18n_hook_usage(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    // Check for "use client" directive
+    let has_use_client = content.lines().take(10).any(|line| {
+        let trimmed = line.trim();
+        trimmed == "'use client'" || trimmed == "\"use client\""
+    });
+    
+    // Check for getExtracted (server only)
+    let has_get_extracted = Regex::new(r"\bgetExtracted\s*\(")
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    // Check for useExtracted (client only)
+    let has_use_extracted = Regex::new(r"\buseExtracted\s*\(")
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    if has_use_client && has_get_extracted {
+        diagnostics.add(Diagnostic {
+            severity: config.rules.bassist_i18n_hook_usage.severity,
+            rule: "bassist-i18n-hook-usage".to_string(),
+            message: "Client component should use 'useExtracted()' hook, not 'getExtracted()' function".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    }
+    
+    if !has_use_client && has_use_extracted {
+        // Check if this is in app/ directory (likely server component)
+        let path_str = path.to_str().unwrap_or("");
+        if path_str.contains("/app/") {
+            diagnostics.add(Diagnostic {
+                severity: config.rules.bassist_i18n_hook_usage.severity,
+                rule: "bassist-i18n-hook-usage".to_string(),
+                message: "Server component should use 'getExtracted()' function, not 'useExtracted()' React hook".to_string(),
+                file: path.to_path_buf(),
+                line: None,
+            });
+        }
+    }
+}
+
+/// Check test files are colocated, not in root /tests directory
+pub fn check_bassist_test_colocation(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    
+    // Check if this is a test file
+    let is_test_file = path_str.contains(".test.") || path_str.contains(".spec.");
+    
+    if !is_test_file {
+        return;
+    }
+    
+    // Check if it's in a root /tests directory (not domain-specific)
+    if path_str.starts_with("tests/") || path_str.contains("/tests/") && !path_str.contains("/app/") {
+        diagnostics.add(Diagnostic {
+            severity: config.rules.bassist_test_colocation.severity,
+            rule: "bassist-test-colocation".to_string(),
+            message: "Test files should be colocated with their implementation in domain folders (app/), not in a separate /tests directory".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    }
+}
+
+/// Check test file naming conventions based on test type
+pub fn check_bassist_test_naming(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    
+    // Only check test files
+    if !path_str.contains(".test.") && !path_str.contains(".spec.") {
+        return;
+    }
+    
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    // Heuristic checks based on imports
+    let has_playwright = Regex::new(r#"from\s+['"]@playwright/test['"]"#)
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    let has_db_test_utils = Regex::new(r"(createTestServiceClient|ensureTestUser)")
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    let has_mastra = Regex::new(r#"from\s+['"]@/src/mastra"#)
+        .map(|re| re.is_match(&content))
+        .unwrap_or(false);
+    
+    // Suggest appropriate extension
+    if has_playwright && !path_str.ends_with(".spec.ts") {
+        diagnostics.add(Diagnostic {
+            severity: if config.rules.bassist_test_naming.options.bassist.enforce_test_naming {
+                config.rules.bassist_test_naming.severity
+            } else {
+                crate::config::Severity::Warn
+            },
+            rule: "bassist-test-naming".to_string(),
+            message: "E2E tests using Playwright should use '*.spec.ts' extension".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    } else if has_db_test_utils && !path_str.contains(".test.db.") {
+        diagnostics.add(Diagnostic {
+            severity: if config.rules.bassist_test_naming.options.bassist.enforce_test_naming {
+                config.rules.bassist_test_naming.severity
+            } else {
+                crate::config::Severity::Warn
+            },
+            rule: "bassist-test-naming".to_string(),
+            message: "Database tests using service client or test users should use '*.test.db.ts' extension".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    } else if has_mastra && !path_str.contains(".test.gen.") {
+        diagnostics.add(Diagnostic {
+            severity: if config.rules.bassist_test_naming.options.bassist.enforce_test_naming {
+                config.rules.bassist_test_naming.severity
+            } else {
+                crate::config::Severity::Warn
+            },
+            rule: "bassist-test-naming".to_string(),
+            message: "AI generation tests should use '*.test.gen.ts' extension".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    }
+}
+
+/// Check API routes are in proper api/ directories
+pub fn check_bassist_api_route_structure(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    
+    // Check if this is a route.ts file (API route)
+    if file_name != "route.ts" && file_name != "route.js" {
+        return;
+    }
+    
+    // Check if it's in an /api/ directory
+    if !path_str.contains("/api/") {
+        diagnostics.add(Diagnostic {
+            severity: config.rules.bassist_api_route_structure.severity,
+            rule: "bassist-api-route-structure".to_string(),
+            message: "API route files (route.ts) should be placed in /api/ directories".to_string(),
+            file: path.to_path_buf(),
+            line: None,
+        });
+    }
+}
+
+/// Check for cross-domain imports that violate domain boundaries
+pub fn check_bassist_domain_isolation(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    let path_str = path.to_str().unwrap_or("");
+    
+    // Extract current file's route group
+    let current_route_group = if let Some(app_pos) = path_str.find("/app/") {
+        let after_app = &path_str[app_pos + 5..];
+        if after_app.starts_with('(') {
+            if let Some(close_paren) = after_app.find(')') {
+                Some(&after_app[1..close_paren])
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
+    if current_route_group.is_none() {
+        return; // Not in a route group
+    }
+    
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    let allowed_paths: Vec<&str> = config
+        .rules
+        .bassist_domain_isolation
+        .options
+        .bassist
+        .cross_domain_allowed_paths
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+    
+    // Check for imports from other route groups
+    let import_pattern = r#"from\s+['"]@/app/\(([^)]+)\)/(lib|components|schemas|[^'"]+)['"]"#;
+    if let Ok(re) = Regex::new(import_pattern) {
+        for cap in re.captures_iter(&content) {
+            if let (Some(imported_group), Some(imported_path)) = (cap.get(1), cap.get(2)) {
+                let imported_group_str = imported_group.as_str();
+                let imported_path_str = imported_path.as_str();
+                
+                // Check if importing from a different route group
+                if Some(imported_group_str) != current_route_group {
+                    // Check if the imported path is allowed
+                    let is_allowed = allowed_paths.iter().any(|allowed| {
+                        imported_path_str == *allowed || imported_path_str.starts_with(&format!("{}/", allowed))
+                    });
+                    
+                    if !is_allowed {
+                        diagnostics.add(Diagnostic {
+                            severity: config.rules.bassist_domain_isolation.severity,
+                            rule: "bassist-domain-isolation".to_string(),
+                            message: format!(
+                                "Cross-domain import from '({})' detected. Domains should not import '{}' from sibling domains. Consider moving shared code to root /lib or /components, or configure allowed paths.",
+                                imported_group_str, imported_path_str
+                            ),
+                            file: path.to_path_buf(),
+                            line: None,
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Check i18n namespace conventions
+pub fn check_bassist_i18n_namespaces(
+    path: &Path,
+    config: &Config,
+    diagnostics: &mut DiagnosticCollection,
+) {
+    // Read file content
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    
+    // Check for useExtracted or getExtracted calls
+    let pattern = r#"(use|get)Extracted\s*\(\s*['"]([^'"]+)['"]"#;
+    if let Ok(re) = Regex::new(pattern) {
+        for cap in re.captures_iter(&content) {
+            if let Some(namespace) = cap.get(2) {
+                let namespace_str = namespace.as_str();
+                
+                // Check if namespace follows domain.context pattern
+                if !namespace_str.contains('.') {
+                    diagnostics.add(Diagnostic {
+                        severity: config.rules.bassist_i18n_namespaces.severity,
+                        rule: "bassist-i18n-namespaces".to_string(),
+                        message: format!(
+                            "i18n namespace '{}' should follow 'domain.context' pattern (e.g., 'auth.login', 'common.actions')",
+                            namespace_str
+                        ),
+                        file: path.to_path_buf(),
+                        line: None,
+                    });
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
